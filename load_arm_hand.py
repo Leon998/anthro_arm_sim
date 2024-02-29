@@ -22,7 +22,7 @@ planeId = p.loadURDF("plane.urdf")
 # 加载机器人，并设置加载的机器人的位姿
 startPos = [0, 0, 1.5]
 startOrientation = p.getQuaternionFromEuler([-pi, -0.5*pi, 0])
-robot_id = p.loadURDF("arm_hand_v2/urdf/arm_hand_v2.urdf", startPos, startOrientation, useFixedBase=1)
+robot_id = p.loadURDF("models/arm_hand_v2/urdf/arm_hand_v2.urdf", startPos, startOrientation, useFixedBase=1)
 
 joints_indexes = [i for i in range(p.getNumJoints(robot_id)) if p.getJointInfo(robot_id, i)[2] != p.JOINT_FIXED]
 
