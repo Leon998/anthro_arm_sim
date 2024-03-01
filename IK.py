@@ -32,10 +32,10 @@ prevPose1 = [0, 0, 0]
 hasPrevPose = 0
 useNullSpace = 1
 
+# # Joint state init
+# p.resetJointState(robot_id, arm_joints_indexes[1], 90*math.pi/180)
+# p.resetJointState(robot_id, arm_joints_indexes[2], 90*math.pi/180)
 
-# Joint state init
-p.resetJointState(robot_id, arm_joints_indexes[1], 90*math.pi/180)
-p.resetJointState(robot_id, arm_joints_indexes[2], 90*math.pi/180)
 # Rendering
 p.configureDebugVisualizer(p.COV_ENABLE_RENDERING, 1)
 # p.configureDebugVisualizer(p.COV_ENABLE_GUI, 1)
@@ -45,23 +45,23 @@ t = 0.
 for step in range (50000):
     p.stepSimulation()
     time.sleep(1./240.)
+    if step > 100:
+        # Follow a trace
+        t = t + 0.01
+        pos = [0.3 + 0.1 * math.cos(t), 0.3, 0.8 + 0.2 * math.sin(t)]
+        jointPoses = p.calculateInverseKinematics(robot_id, EndEffectorIndex, 
+                                                  pos, solver=ikSolver)
 
-    # Follow a trace
-    t = t + 0.01
-    pos = [0.3 + 0.1 * math.cos(t), 0.3, 0.7 + 0.2 * math.sin(t)]
-    jointPoses = p.calculateInverseKinematics(robot_id, EndEffectorIndex, 
-                                              pos, solver=ikSolver)
-
-    for i in range(len(arm_joints_indexes)):
-        p.resetJointState(bodyUniqueId=robot_id,
-                          jointIndex=i,
-                          targetValue=jointPoses[i],
-                          targetVelocity=0)
-    ls = p.getLinkState(robot_id, EndEffectorIndex)
-    if (hasPrevPose):
-        p.addUserDebugLine(prevPose, pos, [0, 0, 0.3], 1, 15)
-        p.addUserDebugLine(prevPose1, ls[4], [1, 0, 0], 1, 15)
-    prevPose = pos
-    prevPose1 = ls[4]
-    hasPrevPose = 1
+        for i in range(len(arm_joints_indexes)):
+            p.resetJointState(bodyUniqueId=robot_id,
+                              jointIndex=i,
+                              targetValue=jointPoses[i],
+                              targetVelocity=0)
+        ls = p.getLinkState(robot_id, EndEffectorIndex)
+        if (hasPrevPose):
+            p.addUserDebugLine(prevPose, pos, [0, 0, 0.3], 1, 15)
+            p.addUserDebugLine(prevPose1, ls[4], [1, 0, 0], 1, 15)
+        prevPose = pos
+        prevPose1 = ls[4]
+        hasPrevPose = 1
 p.disconnect()
