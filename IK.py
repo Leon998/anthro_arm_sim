@@ -53,14 +53,10 @@ for step in range (50000):
                                               pos, solver=ikSolver)
 
     for i in range(len(arm_joints_indexes)):
-        p.setJointMotorControl2(bodyIndex=robot_id,
-                                jointIndex=i,
-                                controlMode=p.POSITION_CONTROL,
-                                targetPosition=jointPoses[i],
-                                targetVelocity=0,
-                                force=500,
-                                positionGain=0.03,
-                                velocityGain=1)
+        p.resetJointState(bodyUniqueId=robot_id,
+                          jointIndex=i,
+                          targetValue=jointPoses[i],
+                          targetVelocity=0)
     ls = p.getLinkState(robot_id, EndEffectorIndex)
     if (hasPrevPose):
         p.addUserDebugLine(prevPose, pos, [0, 0, 0.3], 1, 15)
