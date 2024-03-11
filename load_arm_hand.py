@@ -17,24 +17,26 @@ p.setAdditionalSearchPath(pybullet_data.getDataPath())
 p.setGravity(0, 0, 0)
 
 # 加载URDF模型，此处是加载蓝白相间的陆地
-planeId = p.loadURDF("plane.urdf")
+# planeId = p.loadURDF("plane.urdf")
 
 # 加载机器人，并设置加载的机器人的位姿
-startPos = [0, 0, 1.5]
-startOrientation = p.getQuaternionFromEuler([-pi, -0.5*pi, 0])
-robot_id = p.loadURDF("models/arm_hand_v2/urdf/arm_hand_v2.urdf", startPos, startOrientation, useFixedBase=1)
+startPos = [0, 0, 0]
+startOrientation = p.getQuaternionFromEuler([0, 0, 0])
+arm_model = 'anthro_arm'
+robot_id = p.loadURDF("models/"+arm_model+"/urdf/"+arm_model+".urdf", 
+                      startPos, startOrientation, useFixedBase=1)
 
 joints_indexes = [i for i in range(p.getNumJoints(robot_id)) if p.getJointInfo(robot_id, i)[2] != p.JOINT_FIXED]
 
 p.configureDebugVisualizer(p.COV_ENABLE_RENDERING, 1)
-# p.configureDebugVisualizer(p.COV_ENABLE_GUI, 1)
+p.configureDebugVisualizer(p.COV_ENABLE_GUI, 1)
 p.resetDebugVisualizerCamera(cameraDistance=1, cameraYaw=135,
-                                 cameraPitch=-30, cameraTargetPosition=[0,0,1.2])
+                                 cameraPitch=-30, cameraTargetPosition=[0,0,0])
 
-for i in range(10000):
+while True:
     p.stepSimulation()
-    # p.setJointMotorControl2(robot_id, joints_indexes[3],
-    #                        controlMode=p.VELOCITY_CONTROL, targetVelocity=-5,  force=20)
+    # p.setJointMotorControl2(robot_id, joints_indexes[6],
+    #                        controlMode=p.VELOCITY_CONTROL, targetVelocity=5,  force=20)
     time.sleep(1./240.)
 
 # 断开连接

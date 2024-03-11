@@ -5,13 +5,14 @@ import math
 physicsClient = p.connect(p.GUI)#or p.DIRECT for non-graphical version
 p.setAdditionalSearchPath(pybullet_data.getDataPath()) #optionally
 p.configureDebugVisualizer(p.COV_ENABLE_RENDERING, 0)  # 先不渲染
-# p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
+p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
 p.setGravity(0,0,0)
 planeId = p.loadURDF("plane.urdf")
 startPos = [0, 0, 1]
-startOrientation = p.getQuaternionFromEuler([-math.pi, -0.5*math.pi, 0])
-robot_id = p.loadURDF("models/arm_hand_v2/urdf/arm_hand_v2.urdf",startPos, startOrientation,
-                      useFixedBase=1)
+startOrientation = p.getQuaternionFromEuler([0, 0, 0])
+arm_model = 'anthro_arm'
+robot_id = p.loadURDF("models/"+arm_model+"/urdf/"+arm_model+".urdf", 
+                      startPos, startOrientation, useFixedBase=1)
 # 输出基本信息
 available_joints_indexes = [i for i in range(p.getNumJoints(robot_id)) 
                             if p.getJointInfo(robot_id, i)[2] != p.JOINT_FIXED]
@@ -22,8 +23,8 @@ print("arm关节:")
 for joint in arm_joints_indexes:
     print(p.getJointInfo(robot_id, joint)[0], p.getJointInfo(robot_id, joint)[1])
 # 末端执行器索引
-EndEffector = arm_joints_indexes[-1]
-EndEffectorIndex = EndEffector
+EndEffectorIndex = arm_joints_indexes[-1]
+print(EndEffectorIndex)
 
 # init
 ikSolver = 0
@@ -47,11 +48,12 @@ for step in range (50000):
     time.sleep(1./240.)
     if step > 100:
         # Follow a trace
-        t = t + 0.01
-        pos = [0.3 + 0.1 * math.cos(t), 0.3, 0.8 + 0.2 * math.sin(t)]
+        t = t + 0.02
+        pos = [0.1 + 0.2 * math.cos(t), 0.3, 0.8 + 0.2 * math.sin(t)]
+        orn = p.getQuaternionFromEuler([0.5*math.pi, 0, 0])
         jointPoses = p.calculateInverseKinematics(robot_id, EndEffectorIndex, 
-                                                  pos, solver=ikSolver)
-
+                                                  pos, orn, solver=ikSolver)
+        print(jointPoses)
         for i in range(len(arm_joints_indexes)):
             p.resetJointState(bodyUniqueId=robot_id,
                               jointIndex=i,
