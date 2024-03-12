@@ -13,17 +13,11 @@ startOrientation = p.getQuaternionFromEuler([0, 0, 0])
 arm_model = 'anthro_arm'
 robot_id = p.loadURDF("models/"+arm_model+"/urdf/"+arm_model+".urdf", 
                       startPos, startOrientation, useFixedBase=1)
-# 输出基本信息
-available_joints_indexes = [i for i in range(p.getNumJoints(robot_id)) 
-                            if p.getJointInfo(robot_id, i)[2] != p.JOINT_FIXED]
-# 获取arm的关节索引
-arm_joints_indexes = [i for i in available_joints_indexes 
-                      if not "hand" in str(p.getJointInfo(robot_id, i)[1])]
-print("arm关节:")
-for joint in arm_joints_indexes:
-    print(p.getJointInfo(robot_id, joint)[0], p.getJointInfo(robot_id, joint)[1])
+# 输出joint信息
+joints_indexes = [i for i in range(p.getNumJoints(robot_id)) 
+                  if p.getJointInfo(robot_id, i)[2] != p.JOINT_FIXED]
 # 末端执行器索引
-EndEffectorIndex = arm_joints_indexes[-1]
+EndEffectorIndex = joints_indexes[-1]
 print(EndEffectorIndex)
 
 # init
@@ -33,9 +27,6 @@ prevPose1 = [0, 0, 0]
 hasPrevPose = 0
 useNullSpace = 1
 
-# # Joint state init
-# p.resetJointState(robot_id, arm_joints_indexes[1], 90*math.pi/180)
-# p.resetJointState(robot_id, arm_joints_indexes[2], 90*math.pi/180)
 
 # Rendering
 p.configureDebugVisualizer(p.COV_ENABLE_RENDERING, 1)
@@ -54,7 +45,7 @@ for step in range (50000):
         jointPoses = p.calculateInverseKinematics(robot_id, EndEffectorIndex, 
                                                   pos, orn, solver=ikSolver)
         print(jointPoses)
-        for i in range(len(arm_joints_indexes)):
+        for i in range(len(joints_indexes)):
             p.resetJointState(bodyUniqueId=robot_id,
                               jointIndex=i,
                               targetValue=jointPoses[i],

@@ -26,7 +26,8 @@ arm_model = 'anthro_arm'
 robot_id = p.loadURDF("models/"+arm_model+"/urdf/"+arm_model+".urdf", 
                       startPos, startOrientation, useFixedBase=1)
 
-joints_indexes = [i for i in range(p.getNumJoints(robot_id)) if p.getJointInfo(robot_id, i)[2] != p.JOINT_FIXED]
+joints_indexes = [i for i in range(p.getNumJoints(robot_id)) 
+                  if p.getJointInfo(robot_id, i)[2] != p.JOINT_FIXED]
 
 p.configureDebugVisualizer(p.COV_ENABLE_RENDERING, 1)
 p.configureDebugVisualizer(p.COV_ENABLE_GUI, 1)
