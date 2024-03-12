@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
 import sys
-sys.path.append('/home/shixu/My_env/Practice/anthro_arm_sim/pydmps')
+sys.path.append(os.getcwd() + '/pydmps')
 
 import numpy as np
 import matplotlib.pyplot as plt
