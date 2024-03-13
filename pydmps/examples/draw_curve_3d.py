@@ -16,7 +16,6 @@ x = z * np.sin(5 * z)
 y = z * np.cos(5 * z)
 
 y_des = np.vstack((x,y,z))
-get_point_dist(y_des)
 
 dmp = pydmps.dmp_discrete.DMPs_discrete(n_dmps=3, n_bfs=500, ay=np.ones(3) * 10.0)
 y_track = []
@@ -24,10 +23,11 @@ dy_track = []
 ddy_track = []
 
 dmp.imitate_path(y_des=y_des, plot=True)
+change_position = False
 
-
-# # changing end position
-# dmp.goal = np.array([1.5, -1.5, 1.5])
+if change_position:
+    # changing end position
+    dmp.goal = np.array([1.5, -1.5, 1.5])
 
 # rollout
 for t in range(dmp.timesteps):

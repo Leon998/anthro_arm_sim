@@ -7,13 +7,12 @@ import pydmps
 import pydmps.dmp_discrete
 
 
-traj_path = 'trajectories/r_hand_001.csv'
+traj_path = 'trajectories/r_hand_000.csv'
 
 Q_wh, T_wh = read_data(traj_path)
 Q_wh, T_wh = Q_wh.T, T_wh.T
-y_des = T_wh[:,20:200:5]
+y_des = T_wh
 print(y_des.shape)
-get_point_dist(y_des)
 
 dmp = pydmps.dmp_discrete.DMPs_discrete(n_dmps=3, n_bfs=500, ay=np.ones(3) * 10.0)
 y_track = []
@@ -21,10 +20,6 @@ dy_track = []
 ddy_track = []
 
 dmp.imitate_path(y_des=y_des, plot=True)
-
-
-# changing end position
-dmp.goal = np.array([1.5, -1.5, 1.5])
 
 # rollout
 for t in range(dmp.timesteps):
