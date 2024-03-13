@@ -30,7 +30,7 @@ y_des -= y_des[:, 0][:, None]
 print(y_des.shape)  # 演示轨迹的形状为(2, 79)
 
 # test normal run
-dmp = pydmps.dmp_discrete.DMPs_discrete(n_dmps=2, n_bfs=500, ay=np.ones(2) * 10.0)
+dmp = pydmps.dmp_discrete.DMPs_discrete(n_dmps=2, n_bfs=100, ay=np.ones(2) * 10.0)
 y_track = []
 dy_track = []
 ddy_track = []
