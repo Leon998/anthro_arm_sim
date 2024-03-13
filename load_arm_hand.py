@@ -38,6 +38,8 @@ while True:
     p.stepSimulation()
     # p.setJointMotorControl2(robot_id, joints_indexes[6],
     #                        controlMode=p.VELOCITY_CONTROL, targetVelocity=5,  force=20)
+    hand_state = p.getLinkState(robot_id, joints_indexes[-1])
+    print(hand_state[0])
     time.sleep(1./240.)
 
 # 断开连接

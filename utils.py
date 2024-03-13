@@ -28,3 +28,8 @@ def get_point_dist(y):
                           +math.pow((y[1,i]-y[1,i-1]),2)
                           +math.pow((y[2,i]-y[2,i-1]),2))
             print(d)
+
+def hand_init_bias(y, bias):
+    for i in range(len(y.T)):
+        y[2,i] = y[2,i] + bias  # bias on z axis
+    return y
