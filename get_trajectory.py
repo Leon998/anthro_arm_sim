@@ -7,11 +7,11 @@ import pydmps
 import pydmps.dmp_discrete
 
 
-traj_path = 'trajectories/r_hand_000.csv'
+traj_path = 'trajectories/r_hand_001.csv'
 
 Q_wh, T_wh = read_data(traj_path)
 Q_wh, T_wh = Q_wh.T, T_wh.T
-y_des = T_wh
+y_des = T_wh[:,:200]
 print(y_des.shape)
 
 dmp = pydmps.dmp_discrete.DMPs_discrete(n_dmps=3, n_bfs=500, ay=np.ones(3) * 10.0)
