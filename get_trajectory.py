@@ -1,21 +1,18 @@
-from mpl_toolkits import mplot3d
-import numpy as np
+from utils import *
 import matplotlib.pyplot as plt
 import os
 import sys
-sys.path.append(os.getcwd())
 sys.path.append(os.getcwd() + '/pydmps')
 import pydmps
 import pydmps.dmp_discrete
-from utils import *
 
 
-#从三个维度构建
-z = np.linspace(0, 1, 80)
-x = z * np.sin(5 * z)
-y = z * np.cos(5 * z)
+traj_path = 'trajectories/r_hand_001.csv'
 
-y_des = np.vstack((x,y,z))
+Q_wh, T_wh = read_data(traj_path)
+Q_wh, T_wh = Q_wh.T, T_wh.T
+y_des = T_wh[:,20:200:5]
+print(y_des.shape)
 get_point_dist(y_des)
 
 dmp = pydmps.dmp_discrete.DMPs_discrete(n_dmps=3, n_bfs=500, ay=np.ones(3) * 10.0)
@@ -26,8 +23,8 @@ ddy_track = []
 dmp.imitate_path(y_des=y_des, plot=True)
 
 
-# # changing end position
-# dmp.goal = np.array([1.5, -1.5, 1.5])
+# changing end position
+dmp.goal = np.array([1.5, -1.5, 1.5])
 
 # rollout
 for t in range(dmp.timesteps):

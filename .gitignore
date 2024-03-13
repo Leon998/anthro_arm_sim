@@ -1,3 +1,6 @@
 models/
+trajectories/
 
+__pycache__/
+.vscode/
 pydmps/pydmps/__pycache__/
