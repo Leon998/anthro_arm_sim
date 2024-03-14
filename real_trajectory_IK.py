@@ -42,7 +42,7 @@ p.resetDebugVisualizerCamera(cameraDistance=1, cameraYaw=135,
 traj_path = 'trajectories/r_hand_001.csv'
 Q_wh, T_wh = read_data(traj_path)
 Q_wh, T_wh = Q_wh.T, T_wh.T
-y_des = T_wh[:,:200]
+y_des = T_wh
 print(y_des.shape)
 y_des = hand_init_bias(y_des, bias=height-0.6)
 
