@@ -1,8 +1,5 @@
 from utils import *
 import matplotlib.pyplot as plt
-import os
-import sys
-sys.path.append(os.getcwd() + '/pydmps')
 import pydmps
 import pydmps.dmp_discrete
 
