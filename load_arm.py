@@ -2,6 +2,7 @@ import pybullet as p
 import time
 import pybullet_data
 from math import pi
+from Robot_arm import ROBOT
 
 # 连接物理引擎
 physicsCilent = p.connect(p.GUI)
@@ -22,12 +23,13 @@ planeId = p.loadURDF("plane.urdf")
 # 加载机器人，并设置加载的机器人的位姿
 startPos = [0, 0, 1]
 startOrientation = p.getQuaternionFromEuler([0, 0, 0])
-arm_model = 'anthro_arm_demo'
-robot_id = p.loadURDF("models/"+arm_model+"/urdf/"+arm_model+".urdf", 
-                      startPos, startOrientation, useFixedBase=1)
+robot = ROBOT("anthro_arm_demo")
+kpt_ee = ROBOT.keypoint(robot, robot.ee_index)
+kpt_wrist = ROBOT.keypoint(robot, robot.wrist_index)
+kpt_elbow = ROBOT.keypoint(robot, robot.elbow_index)
 
-joints_indexes = [i for i in range(p.getNumJoints(robot_id)) 
-                  if p.getJointInfo(robot_id, i)[2] != p.JOINT_FIXED]
+joints_indexes = [i for i in range(p.getNumJoints(robot.robot_id)) 
+                  if p.getJointInfo(robot.robot_id, i)[2] != p.JOINT_FIXED]
 
 p.configureDebugVisualizer(p.COV_ENABLE_RENDERING, 1)
 p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
@@ -38,23 +40,19 @@ q = 0.01
 hasPrevPose = 0
 prevPose = 0
 
-def draw_traj(robot_id, index, hasPrevPose, prevPose):
-    ls = p.getLinkState(robot_id, index)
-    if (hasPrevPose):
-        p.addUserDebugLine(prevPose, ls[0], [1, 0, 0], 1, 15)
-    return ls[0], 1
 
-joint_idx = 3
-kpt_idx = 6  # 关键点序号
+joint_idx = 1
 while True:
     p.stepSimulation()
     q += 0.01
-    p.resetJointState(bodyUniqueId=robot_id,
+    p.resetJointState(bodyUniqueId=robot.robot_id,
                       jointIndex=joint_idx,
                       targetValue=q,
                       targetVelocity=0)
     # keypoint tracking
-    prevPose, hasPrevPose = draw_traj(robot_id, kpt_idx, hasPrevPose, prevPose)
+    kpt_ee.draw_traj()
+    kpt_wrist.draw_traj()
+    kpt_elbow.draw_traj()
     time.sleep(1./240.)
 
 # 断开连接
