@@ -4,10 +4,10 @@ import numpy as np
 
 class ROBOT:
     def __init__(self, name, init_joint_angles=[0.,0.,0.,0.,0.,0.,0.]):
-        startPos = [0, 0, 1]
-        startOrientation = p.getQuaternionFromEuler([0, 0, 0])
+        self.startPos = [0, 0, 1]
+        self.startOrientation = p.getQuaternionFromEuler([0, 0, 0])
         self.robot_id = p.loadURDF("models/"+name+"/urdf/"+name+".urdf", 
-                      startPos, startOrientation, useFixedBase=1)
+                      self.startPos, self.startOrientation, useFixedBase=1)
         self.joints_indexes = [i for i in range(p.getNumJoints(self.robot_id)) if p.getJointInfo(self.robot_id, i)[2] != p.JOINT_FIXED]
         self.elbow_index, self.wrist_index, self.ee_index = self.joints_indexes[2], self.joints_indexes[5], self.joints_indexes[6]
         for i in range(len(self.joints_indexes)):

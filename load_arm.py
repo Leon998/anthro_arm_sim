@@ -18,11 +18,9 @@ p.setAdditionalSearchPath(pybullet_data.getDataPath())
 p.setGravity(0, 0, 0)
 
 # 加载URDF模型，此处是加载蓝白相间的陆地
-planeId = p.loadURDF("plane.urdf")
+# planeId = p.loadURDF("plane.urdf")
 
 # 加载机器人，并设置加载的机器人的位姿
-startPos = [0, 0, 1]
-startOrientation = p.getQuaternionFromEuler([0, 0, 0])
 robot = ROBOT("anthro_arm_demo")
 kpt_ee = ROBOT.keypoint(robot, robot.ee_index)
 kpt_wrist = ROBOT.keypoint(robot, robot.wrist_index)
@@ -32,16 +30,12 @@ joints_indexes = [i for i in range(p.getNumJoints(robot.robot_id))
                   if p.getJointInfo(robot.robot_id, i)[2] != p.JOINT_FIXED]
 
 p.configureDebugVisualizer(p.COV_ENABLE_RENDERING, 1)
-p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
+p.configureDebugVisualizer(p.COV_ENABLE_GUI, 1)
 p.resetDebugVisualizerCamera(cameraDistance=1, cameraYaw=-135,
                                  cameraPitch=-36, cameraTargetPosition=[0.2,0,0.5])
 
 q = 0.01
-hasPrevPose = 0
-prevPose = 0
-
-
-joint_idx = 1
+joint_idx = 3
 while True:
     p.stepSimulation()
     q += 0.01
