@@ -29,53 +29,40 @@ useNullSpace = 1
 
 # Rendering
 p.configureDebugVisualizer(p.COV_ENABLE_RENDERING, 1)
-p.configureDebugVisualizer(p.COV_ENABLE_GUI, 1)
+p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
 p.resetDebugVisualizerCamera(cameraDistance=1, cameraYaw=-135,
                                  cameraPitch=-36, cameraTargetPosition=[0.2,0,0.5])
 
-### Real trjectory
-## random moving
-# traj_path = 'trajectories/r_hand_001.csv'
-# Q_wh, T_wh = read_data(traj_path)
-# y_des = T_wh
-# print(y_des.shape)
-# y_des = hand_init_bias(y_des, bias=height-0.6)
 
-## manipulation
+
 base_position = np.array(robot.startPos) + np.array([0.1, 0, 0])
 traj_path = 'trajectories/mocap_csv/622/622_pour_000.csv'
-ts_base2eb, ts_base2wr, ts_base2ee = get_transformed_position(traj_path, base_position, down_sample=2)
+ts_base2eb, ts_base2wr, ts_base2ee = get_transformed_position(traj_path, base_position, down_sample=120)
 # 检查臂长
 # for t in ts_base2eb:
 #     d = math.sqrt(math.pow(t[0],2)+math.pow(t[1],2)+math.pow(t[2],2))
 #     print(d)
 
-y_des = ts_base2wr
-print(y_des.shape)
+sample_len = len(ts_base2ee)
+print(ts_base2ee.shape)
+# p.addUserDebugPoints(ts_base2ee, [([1, 0, 0]) for i in range(sample_len)], 5)
+p.addUserDebugPoints(ts_base2wr, [([0, 1, 0]) for i in range(sample_len)], 5)
+p.addUserDebugPoints(ts_base2eb, [([0, 0, 1]) for i in range(sample_len)], 5)
+time.sleep(1)
 
+Q_star, Error = robot.opt_kpt(sample_len, ts_base2ee, ts_base2wr, ts_base2eb)
+print("Q_star = ", Q_star)
+print("Error = ", Error)
 
-# 关节索引
-JointIndex = joints_indexes[-1]
-print(JointIndex)
-
-for j in range(len(y_des)):
+while True:
     p.stepSimulation()
     time.sleep(1./240.)
-    # Follow the trajectory
-    pos = y_des[j, :]
-    jointPoses = p.calculateInverseKinematics(robot.robot_id, JointIndex, 
-                                                  pos, solver=ikSolver)
-    # print(jointPoses)
-    for i in range(len(joints_indexes)):
-        p.resetJointState(bodyUniqueId=robot.robot_id,
-                              jointIndex=i,
-                              targetValue=jointPoses[i],
-                              targetVelocity=0)
-    ls = p.getLinkState(robot.robot_id, JointIndex)
-    if (hasPrevPose):
-        p.addUserDebugLine(prevPose, pos, [0, 0, 0.3], 1, 15)
-        p.addUserDebugLine(prevPose1, ls[4], [1, 0, 0], 1, 15)
-    prevPose = pos
-    prevPose1 = ls[4]
-    hasPrevPose = 1
-p.disconnect()
+    robot.FK(robot.init_joint_angles)
+    time.sleep(0.5)
+    for q_star in Q_star:
+        print("q_star: ", q_star)
+        robot.FK(q_star)
+        time.sleep(0.25)
+    
+# # 断开连接
+# p.disconnect()

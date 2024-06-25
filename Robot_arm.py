@@ -1,11 +1,14 @@
 import pybullet as p
 import numpy as np
+from scipy.optimize import minimize
 
 
 class ROBOT:
-    def __init__(self, name, init_joint_angles=[0.,0.,0.,0.,0.,0.,0.]):
+    def __init__(self, name, dof=7):
         self.startPos = [0, 0, 1]
         self.startOrientation = p.getQuaternionFromEuler([0, 0, 0])
+        self.dof = dof
+        self.init_joint_angles = [0. for i in range(self.dof)]
         self.robot_id = p.loadURDF("models/"+name+"/urdf/"+name+".urdf", 
                       self.startPos, self.startOrientation, useFixedBase=1)
         self.joints_indexes = [i for i in range(p.getNumJoints(self.robot_id)) if p.getJointInfo(self.robot_id, i)[2] != p.JOINT_FIXED]
@@ -13,7 +16,7 @@ class ROBOT:
         for i in range(len(self.joints_indexes)):
             p.resetJointState(bodyUniqueId=self.robot_id,
                               jointIndex=i,
-                              targetValue=init_joint_angles[i],
+                              targetValue=self.init_joint_angles[i],
                               targetVelocity=0)
         self.q_init, self.dq_init, self.ddq_init = self.get_joints_states()
 
@@ -42,6 +45,36 @@ class ROBOT:
         zero_vec = [0.0] * p.getNumJoints(self.robot_id)
         jac_t, jac_r = p.calculateJacobian(self.robot_id, self.ee_index, p.getLinkState(self.robot_id, self.ee_index)[2], self.q, self.dq, zero_vec)
         self.J = np.array(jac_t)
+
+    def opt_kpt(self, sample_len, ee_traj, wrist_traj, elbow_traj):
+        """
+        考虑全局最优
+        """
+        q_init = [0. for i in range(sample_len*self.dof)]  # 长度为n×m（目标数×关节自由度数）
+        def eqn(q):
+            Error = []
+            i, j, k= 0, 0, 0
+            # for g in ee_traj:
+            #     self.FK(q[i:i+dof])
+            #     Error.append(np.linalg.norm(self.get_error(g, self.ee_index)))
+            #     i += dof
+            for g in wrist_traj:
+                self.FK(q[j:j+self.dof])
+                Error.append(np.linalg.norm(self.get_error(g, self.wrist_index)))
+                j += self.dof
+            for g in elbow_traj:
+                self.FK(q[k:k+self.dof])
+                Error.append(np.linalg.norm(self.get_error(g, self.elbow_index)))
+                k += self.dof
+            # 以下几种误差的求法都可以，QP最好
+            # Error = np.linalg.norm(np.array(Error))
+            # Error = np.sum(np.array(Error))
+            Error = np.dot(np.array(Error).T, np.array(Error)) + 0.001 *np.linalg.norm(q, ord = 1)  # QP问题
+            return Error
+        Q_star = minimize(eqn, q_init, method='BFGS')
+        Error = Q_star.fun
+        Q_star = np.array(Q_star.x).reshape([sample_len,self.dof])
+        return Q_star, Error
 
     class keypoint:
         def __init__(self, robot, index, hasPrevPose=0, prevPose=0):
