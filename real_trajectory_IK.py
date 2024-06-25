@@ -33,8 +33,8 @@ useNullSpace = 1
 # Rendering
 p.configureDebugVisualizer(p.COV_ENABLE_RENDERING, 1)
 # p.configureDebugVisualizer(p.COV_ENABLE_GUI, 1)
-p.resetDebugVisualizerCamera(cameraDistance=1, cameraYaw=135,
-                                 cameraPitch=-30, cameraTargetPosition=[0,0,0.5])
+p.resetDebugVisualizerCamera(cameraDistance=1, cameraYaw=-135,
+                                 cameraPitch=-36, cameraTargetPosition=[0.2,0,0.5])
 
 ### Real trjectory
 ## random moving
