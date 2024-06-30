@@ -6,7 +6,6 @@ from utils import *
 from Robot_arm import ROBOT
 
 
-height = 1
 physicsClient = p.connect(p.GUI)#or p.DIRECT for non-graphical version
 p.setAdditionalSearchPath(pybullet_data.getDataPath()) #optionally
 p.configureDebugVisualizer(p.COV_ENABLE_RENDERING, 0)  # 先不渲染
@@ -15,25 +14,12 @@ p.setGravity(0,0,0)
 planeId = p.loadURDF("plane.urdf")
 robot = ROBOT("anthro_arm_demo")
 kpt_ee = ROBOT.keypoint(robot, robot.ee_index)
-# 输出joint信息
-joints_indexes = [i for i in range(p.getNumJoints(robot.robot_id)) 
-                  if p.getJointInfo(robot.robot_id, i)[2] != p.JOINT_FIXED]
-
-# init
-ikSolver = 0
-prevPose = [0, 0, 0]
-prevPose1 = [0, 0, 0]
-hasPrevPose = 0
-useNullSpace = 1
-
 
 # Rendering
 p.configureDebugVisualizer(p.COV_ENABLE_RENDERING, 1)
 p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
 p.resetDebugVisualizerCamera(cameraDistance=1, cameraYaw=-135,
                                  cameraPitch=-36, cameraTargetPosition=[0.2,0,0.5])
-
-
 
 base_position = np.array(robot.startPos) + np.array([0.1, 0, 0])
 traj_path = 'trajectories/mocap_csv/622/622_pour_000.csv'

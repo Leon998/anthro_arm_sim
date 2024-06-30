@@ -69,7 +69,7 @@ class ROBOT:
             # 以下几种误差的求法都可以，QP最好
             # Error = np.linalg.norm(np.array(Error))
             # Error = np.sum(np.array(Error))
-            Error = np.dot(np.array(Error).T, np.array(Error)) + 0.001 *np.linalg.norm(q, ord = 1)  # QP问题
+            Error = np.dot(np.array(Error).T, np.array(Error)) + 0.001 *np.dot(q.T, q)  # QP问题
             return Error
         Q_star = minimize(eqn, q_init, method='BFGS')
         Error = Q_star.fun
