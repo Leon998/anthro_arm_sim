@@ -35,7 +35,7 @@ p.resetDebugVisualizerCamera(cameraDistance=1, cameraYaw=-135,
                                  cameraPitch=-36, cameraTargetPosition=[0.2,0,0.5])
 
 q = 0.01
-joint_idx = 3
+joint_idx = 0
 while True:
     p.stepSimulation()
     q += 0.01

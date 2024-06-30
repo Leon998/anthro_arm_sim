@@ -37,7 +37,10 @@ p.resetDebugVisualizerCamera(cameraDistance=1, cameraYaw=-135,
 
 base_position = np.array(robot.startPos) + np.array([0.1, 0, 0])
 traj_path = 'trajectories/mocap_csv/622/622_pour_000.csv'
-ts_base2eb, ts_base2wr, ts_base2ee = get_transformed_position(traj_path, base_position, down_sample=120)
+ts_base2eb, ts_base2wr, ts_base2ee = get_transformed_position(traj_path, 
+                                                              base_position, 
+                                                              down_sample=50,
+                                                              cut_data=[350, 850])
 # 检查臂长
 # for t in ts_base2eb:
 #     d = math.sqrt(math.pow(t[0],2)+math.pow(t[1],2)+math.pow(t[2],2))
@@ -45,7 +48,7 @@ ts_base2eb, ts_base2wr, ts_base2ee = get_transformed_position(traj_path, base_po
 
 sample_len = len(ts_base2ee)
 print(ts_base2ee.shape)
-# p.addUserDebugPoints(ts_base2ee, [([1, 0, 0]) for i in range(sample_len)], 5)
+p.addUserDebugPoints(ts_base2ee, [([1, 0, 0]) for i in range(sample_len)], 5)
 p.addUserDebugPoints(ts_base2wr, [([0, 1, 0]) for i in range(sample_len)], 5)
 p.addUserDebugPoints(ts_base2eb, [([0, 0, 1]) for i in range(sample_len)], 5)
 time.sleep(1)

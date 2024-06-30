@@ -4,22 +4,27 @@ import math
 from scipy.spatial.transform import Rotation as R
 
 
-def read_data(file_name):
-    df_raw = pd.read_csv(file_name, usecols=[2, 3, 4, 5, 6, 7, 8], skiprows=6)
-    data_raw = np.array(df_raw)
-    num_frame = data_raw.shape[0]
-    Q_wbase = data_raw[:, :4]  # X,Y,Z,W
-    T_wbase = data_raw[:, 4:7]  # X,Y,Z
-    return Q_wbase, T_wbase
+base_cols = [2, 3, 4, 5, 6, 7, 8]
+eb_cols=[9, 10, 11, 12, 13, 14, 15]
+wr_cols=[16, 17, 18, 19, 20, 21, 22]
+ee_cols=[23, 24, 25, 26, 27, 28, 29]
 
-def get_transformed_position(file_name, base_position, down_sample=2):
+def read_data(file_name, data_cols, cut_data=False):
+    df_raw = pd.read_csv(file_name, usecols=data_cols, skiprows=6)
+    if cut_data:
+        T_w2data = np.array(df_raw)[cut_data[0]:cut_data[1]]
+    else:
+        T_w2data = np.array(df_raw)
+    return T_w2data
+
+def get_transformed_position(file_name, base_position, down_sample=2, cut_data=False):
     """
     Transform keypoints' position into base coordinate
     """
-    T_w2base = np.array(pd.read_csv(file_name, usecols=[2, 3, 4, 5, 6, 7, 8], skiprows=6))
-    T_w2eb = np.array(pd.read_csv(file_name, usecols=[9, 10, 11, 12, 13, 14, 15], skiprows=6))
-    T_w2wr = np.array(pd.read_csv(file_name, usecols=[16, 17, 18, 19, 20, 21, 22], skiprows=6))
-    T_w2ee = np.array(pd.read_csv(file_name, usecols=[23, 24, 25, 26, 27, 28, 29], skiprows=6))
+    T_w2base = read_data(file_name, base_cols, cut_data)
+    T_w2eb = read_data(file_name, eb_cols, cut_data)
+    T_w2wr = read_data(file_name, wr_cols, cut_data)
+    T_w2ee = read_data(file_name, ee_cols, cut_data)
     ts_base2eb = keypoint_transform(T_w2base, T_w2eb)[::down_sample, :] + base_position
     ts_base2wr = keypoint_transform(T_w2base, T_w2wr)[::down_sample, :] + base_position
     ts_base2ee = keypoint_transform(T_w2base, T_w2ee)[::down_sample, :] + base_position
@@ -69,10 +74,10 @@ def hand_init_bias(y, bias):
     return y
 
 
-if __name__ == "__main__":
-    file_name = 'trajectories/mocap_csv/622/622_pour_000.csv'
-    T_w2base = np.array(pd.read_csv(file_name, usecols=[2, 3, 4, 5, 6, 7, 8], skiprows=6))
-    T_w2eb = np.array(pd.read_csv(file_name, usecols=[9, 10, 11, 12, 13, 14, 15], skiprows=6))
-    ts_w2base = T_w2base[::2, 4:7]
-    ts_w2eb = T_w2eb[::2, 4:7]
-    compute_point_dist(ts_w2base, ts_w2eb)
+# if __name__ == "__main__":
+#     file_name = 'trajectories/mocap_csv/622/622_pour_000.csv'
+#     T_w2base = np.array(pd.read_csv(file_name, usecols=[2, 3, 4, 5, 6, 7, 8], skiprows=6))
+#     T_w2eb = np.array(pd.read_csv(file_name, usecols=[9, 10, 11, 12, 13, 14, 15], skiprows=6))
+#     ts_w2base = T_w2base[::2, 4:7]
+#     ts_w2eb = T_w2eb[::2, 4:7]
+#     compute_point_dist(ts_w2base, ts_w2eb)

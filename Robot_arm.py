@@ -54,10 +54,10 @@ class ROBOT:
         def eqn(q):
             Error = []
             i, j, k= 0, 0, 0
-            # for g in ee_traj:
-            #     self.FK(q[i:i+dof])
-            #     Error.append(np.linalg.norm(self.get_error(g, self.ee_index)))
-            #     i += dof
+            for g in ee_traj:
+                self.FK(q[i:i+self.dof])
+                Error.append(np.linalg.norm(self.get_error(g, self.ee_index)))
+                i += self.dof
             for g in wrist_traj:
                 self.FK(q[j:j+self.dof])
                 Error.append(np.linalg.norm(self.get_error(g, self.wrist_index)))

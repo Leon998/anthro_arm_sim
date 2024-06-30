@@ -4,3 +4,5 @@ trajectories/
 __pycache__/
 .vscode/
 pydmps/pydmps/__pycache__/
+
+movement_primitives/
