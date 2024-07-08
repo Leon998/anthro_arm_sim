@@ -22,7 +22,7 @@ p.resetDebugVisualizerCamera(cameraDistance=1, cameraYaw=-135,
                                  cameraPitch=-36, cameraTargetPosition=[0.2,0,0.5])
 
 base_position = np.array(robot.startPos) + np.array([-0.015, 0.1, -0.15])
-file_index = 5
+file_index = 0
 file_path = 'trajectories/mocap_csv/703/'
 files = os.listdir(file_path)
 file_name = file_path + files[file_index]
@@ -31,32 +31,21 @@ segment_index = int(segment_file[file_index])
 
 ts_base2eb, ts_base2wr, ts_base2ee = get_transformed_trajectory(file_name, 
                                                               base_position, 
-                                                              down_sample=70,
-                                                              cut_data=[-2, -1])
+                                                              down_sample=10)
+# 检查臂长
+# for t in ts_base2eb:
+#     d = math.sqrt(math.pow(t[0],2)+math.pow(t[1],2)+math.pow(t[2],2))
+#     print(d)
 
 sample_len = len(ts_base2ee)
 print(ts_base2ee.shape)
 p.addUserDebugPoints(ts_base2ee, [([1, 0, 0]) for i in range(sample_len)], 5)
 p.addUserDebugPoints(ts_base2wr, [([0, 1, 0]) for i in range(sample_len)], 5)
 p.addUserDebugPoints(ts_base2eb, [([0, 0, 1]) for i in range(sample_len)], 5)
-time.sleep(1)
 
-Q_star, Error = robot.opt_kpt(sample_len, ts_base2ee, ts_base2wr, ts_base2eb)
-print("Q_star = ", Q_star)
-print("Error = ", Error)
-
-
-loop = False
 while True:
     p.stepSimulation()
     time.sleep(1./240.)
-    if loop:
-        robot.FK(robot.init_joint_angles)
-        time.sleep(0.5)
-    for q_star in Q_star:
-        print("q_star: ", q_star)
-        robot.FK(q_star)
-        time.sleep(0.25)
     
 # # 断开连接
 # p.disconnect()
