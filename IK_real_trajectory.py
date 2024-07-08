@@ -40,7 +40,7 @@ file_path = 'trajectories/mocap_csv/703/'
 files = os.listdir(file_path)
 file_name = file_path + files[file_index]
 
-qs_base2eb, ts_base2eb, qs_base2wr, ts_base2wr, _, _ = get_transformed_trajectory(file_name, base_position,
+qs_base2eb, ts_base2eb, qs_base2wr, ts_base2wr, qs_base2ee, ts_base2ee = get_transformed_trajectory(file_name, base_position,
                                                                             down_sample=2, cut_data=False, 
                                                                             orientation=True)
 

@@ -32,7 +32,7 @@ segment_index = int(segment_file[file_index])
 ts_base2eb, ts_base2wr, ts_base2ee = get_transformed_trajectory(file_name, 
                                                               base_position, 
                                                               down_sample=70,
-                                                              cut_data=[-2, -1])
+                                                              cut_data=[segment_index, -1])
 
 sample_len = len(ts_base2ee)
 print(ts_base2ee.shape)
