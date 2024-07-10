@@ -5,13 +5,22 @@ from scipy.spatial.transform import Rotation as R
 import os
 
 
-def read_data(file_name, data_cols, cut_data=False):
-    df_raw = pd.read_csv(file_name, usecols=data_cols, skiprows=6)
-    if cut_data:
-        T_w2data = np.array(df_raw)[cut_data[0]:cut_data[1]]
+def get_transformed_trajectory(file_name, base_position, down_sample=1, cut_data=False, orientation=False):
+    """
+    Transform keypoints' trajectory into base coordinate
+    """
+    base_cols, eb_cols, wr_cols, ee_cols, target_cols = get_col_index(file_name)
+    T_w2base = read_data(file_name, base_cols, cut_data)
+    T_w2eb = read_data(file_name, eb_cols, cut_data)
+    T_w2wr = read_data(file_name, wr_cols, cut_data)
+    T_w2ee = read_data(file_name, ee_cols, cut_data)
+    qs_base2eb, ts_base2eb = keypoint_transform(T_w2base, T_w2eb, base_position, down_sample)
+    qs_base2wr, ts_base2wr = keypoint_transform(T_w2base, T_w2wr, base_position, down_sample)
+    qs_base2ee, ts_base2ee = keypoint_transform(T_w2base, T_w2ee, base_position, down_sample)
+    if orientation:
+        return qs_base2eb, ts_base2eb, qs_base2wr, ts_base2wr, qs_base2ee, ts_base2ee
     else:
-        T_w2data = np.array(df_raw)
-    return T_w2data
+        return ts_base2eb, ts_base2wr, ts_base2ee
 
 def get_col_index(file_name):
     data_cols = [i for i in range(2, 37)]
@@ -33,22 +42,13 @@ def get_col_index(file_name):
     ee_cols = [i for i in range(col_name_dict[ee_key], col_name_dict[ee_key]+7)]
     return base_cols, eb_cols, wr_cols, ee_cols, target_cols
 
-def get_transformed_trajectory(file_name, base_position, down_sample=1, cut_data=False, orientation=False):
-    """
-    Transform keypoints' trajectory into base coordinate
-    """
-    base_cols, eb_cols, wr_cols, ee_cols, target_cols = get_col_index(file_name)
-    T_w2base = read_data(file_name, base_cols, cut_data)
-    T_w2eb = read_data(file_name, eb_cols, cut_data)
-    T_w2wr = read_data(file_name, wr_cols, cut_data)
-    T_w2ee = read_data(file_name, ee_cols, cut_data)
-    qs_base2eb, ts_base2eb = keypoint_transform(T_w2base, T_w2eb, base_position, down_sample)
-    qs_base2wr, ts_base2wr = keypoint_transform(T_w2base, T_w2wr, base_position, down_sample)
-    qs_base2ee, ts_base2ee = keypoint_transform(T_w2base, T_w2ee, base_position, down_sample)
-    if orientation:
-        return qs_base2eb, ts_base2eb, qs_base2wr, ts_base2wr, qs_base2ee, ts_base2ee
+def read_data(file_name, data_cols, cut_data=False):
+    df_raw = pd.read_csv(file_name, usecols=data_cols, skiprows=6)
+    if cut_data:
+        T_w2data = np.array(df_raw)[cut_data[0]:cut_data[1]]
     else:
-        return ts_base2eb, ts_base2wr, ts_base2ee
+        T_w2data = np.array(df_raw)
+    return T_w2data
     
 def keypoint_transform(T_w2base, T_w2k, base_position, down_sample=1):
     qs_w2base = T_w2base[:, :4]
