@@ -5,12 +5,6 @@ from scipy.spatial.transform import Rotation as R
 import os
 
 
-base_cols = [16, 17, 18, 19, 20, 21, 22]
-eb_cols= [23, 24, 25, 26, 27, 28, 29]
-wr_cols= [30, 31, 32, 33, 34, 35, 36]
-ee_cols=[2, 3, 4, 5, 6, 7, 8]
-target_cols = [9, 10, 11, 12, 13, 14, 15]
-
 def read_data(file_name, data_cols, cut_data=False):
     df_raw = pd.read_csv(file_name, usecols=data_cols, skiprows=6)
     if cut_data:
@@ -19,10 +13,31 @@ def read_data(file_name, data_cols, cut_data=False):
         T_w2data = np.array(df_raw)
     return T_w2data
 
+def get_col_index(file_name):
+    data_cols = [i for i in range(2, 37)]
+    col_name_list = np.array(pd.read_csv(file_name, usecols=data_cols, skiprows=2, nrows=1)).reshape(-1)
+    # 找出每个字符串首次出现的索引
+    unique_elements, indices = np.unique(col_name_list, return_index=True)
+    # 按索引排序，以保持原始数组的顺序
+    sorted_indices = np.sort(indices)
+    # 结果
+    col_name_dict = {col_name_list[i]: i+2 for i in sorted_indices}
+    target_cols = [i for i in range(col_name_dict['target'], col_name_dict['target']+7)]
+    base_cols = [i for i in range(col_name_dict['base'], col_name_dict['base']+7)]
+    eb_cols = [i for i in range(col_name_dict['eb'], col_name_dict['eb']+7)]
+    wr_cols = [i for i in range(col_name_dict['wr'], col_name_dict['wr']+7)]
+    for key in col_name_dict.keys():
+        if key not in ['target', 'base', 'eb', 'wr']:
+            ee_key = key
+            break
+    ee_cols = [i for i in range(col_name_dict[ee_key], col_name_dict[ee_key]+7)]
+    return base_cols, eb_cols, wr_cols, ee_cols, target_cols
+
 def get_transformed_trajectory(file_name, base_position, down_sample=1, cut_data=False, orientation=False):
     """
     Transform keypoints' trajectory into base coordinate
     """
+    base_cols, eb_cols, wr_cols, ee_cols, target_cols = get_col_index(file_name)
     T_w2base = read_data(file_name, base_cols, cut_data)
     T_w2eb = read_data(file_name, eb_cols, cut_data)
     T_w2wr = read_data(file_name, wr_cols, cut_data)
@@ -83,9 +98,3 @@ def hand_init_bias(y, bias):
 
 
 # if __name__ == "__main__":
-#     file_name = 'trajectories/mocap_csv/622/622_pour_000.csv'
-#     T_w2base = np.array(pd.read_csv(file_name, usecols=[2, 3, 4, 5, 6, 7, 8], skiprows=6))
-#     T_w2eb = np.array(pd.read_csv(file_name, usecols=[9, 10, 11, 12, 13, 14, 15], skiprows=6))
-#     ts_w2base = T_w2base[::2, 4:7]
-#     ts_w2eb = T_w2eb[::2, 4:7]
-#     compute_point_dist(ts_w2base, ts_w2eb)

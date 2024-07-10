@@ -55,6 +55,7 @@ for j in range(len(ts_base2wr)):
     # Follow the trajectory
     pos = ts_base2wr[j, :]
     ori = qs_base2wr[j, :]
+    # ori = np.array([0, 0, 0, 1])
     print(ori)
     jointPoses = p.calculateInverseKinematics(robot.robot_id, JointIndex, 
                                                   pos, ori, solver=ikSolver)
