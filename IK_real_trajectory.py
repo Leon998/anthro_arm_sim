@@ -34,42 +34,52 @@ p.resetDebugVisualizerCamera(cameraDistance=1, cameraYaw=-135,
                                  cameraPitch=-36, cameraTargetPosition=[0.2,0,0.5])
 
 
-base_position = np.array(robot.startPos) + np.array([-0.065, 0.1, -0.15])  # 肩宽、肩厚、肩高补偿
-file_index = 5
-file_path = 'trajectories/mocap_csv/703/'
+base_position = np.array(robot.startPos) + np.array([-0.05, 0.1, -0.15])  # 肩宽、肩厚、肩高补偿
+main_path = 'trajectories/mocap_csv/710/bottle/'
+file_path = main_path + "source/"
 files = os.listdir(file_path)
+# segment_file = np.loadtxt(main_path + "segment.txt")
+
+file_index = 12
 file_name = file_path + files[file_index]
+# segment_index = int(segment_file[file_index])
 
 qs_base2eb, ts_base2eb, qs_base2wr, ts_base2wr, qs_base2ee, ts_base2ee = get_transformed_trajectory(file_name, base_position,
                                                                             down_sample=2, cut_data=False, 
                                                                             orientation=True)
 
+sample_len = len(ts_base2ee)
+print(ts_base2ee.shape)
+p.addUserDebugPoints(ts_base2ee, [([1, 0, 0]) for i in range(sample_len)], 5)
+p.addUserDebugPoints(ts_base2wr, [([0, 1, 0]) for i in range(sample_len)], 5)
+p.addUserDebugPoints(ts_base2eb, [([0, 0, 1]) for i in range(sample_len)], 5)
 
 # 关节索引
 JointIndex = joints_indexes[-1]
 print(JointIndex)
 
-for j in range(len(ts_base2wr)):
-    p.stepSimulation()
-    time.sleep(1./240.)
-    # Follow the trajectory
-    pos = ts_base2wr[j, :]
-    ori = qs_base2wr[j, :]
-    # ori = np.array([0, 0, 0, 1])
-    print(ori)
-    jointPoses = p.calculateInverseKinematics(robot.robot_id, JointIndex, 
-                                                  pos, ori, solver=ikSolver)
-    # print(jointPoses)
-    for i in range(len(joints_indexes)):
-        p.resetJointState(bodyUniqueId=robot.robot_id,
-                              jointIndex=i,
-                              targetValue=jointPoses[i],
-                              targetVelocity=0)
-    ls = p.getLinkState(robot.robot_id, JointIndex)
-    if (hasPrevPose):
-        p.addUserDebugLine(prevPose, pos, [0, 0, 0.3], 1, 15)
-        p.addUserDebugLine(prevPose1, ls[4], [1, 0, 0], 1, 15)
-    prevPose = pos
-    prevPose1 = ls[4]
-    hasPrevPose = 1
+while True:
+    for j in range(len(ts_base2wr)):
+        p.stepSimulation()
+        time.sleep(1./240.)
+        # Follow the trajectory
+        pos = ts_base2wr[j, :]
+        ori = qs_base2wr[j, :]
+        # ori = np.array([0, 0, 0, 1])
+        print(ori)
+        jointPoses = p.calculateInverseKinematics(robot.robot_id, JointIndex, 
+                                                      pos, ori, solver=ikSolver)
+        # print(jointPoses)
+        for i in range(len(joints_indexes)):
+            p.resetJointState(bodyUniqueId=robot.robot_id,
+                                  jointIndex=i,
+                                  targetValue=jointPoses[i],
+                                  targetVelocity=0)
+        ls = p.getLinkState(robot.robot_id, JointIndex)
+        if (hasPrevPose):
+            p.addUserDebugLine(prevPose, pos, [0, 0, 0.3], 1, 15)
+            p.addUserDebugLine(prevPose1, ls[4], [1, 0, 0], 1, 15)
+        prevPose = pos
+        prevPose1 = ls[4]
+        hasPrevPose = 1
 p.disconnect()
