@@ -2,6 +2,8 @@ import pybullet as p
 import time
 import pybullet_data
 import math
+import os, sys
+sys.path.append(os.getcwd())
 from utils import *
 from Robot_arm import ROBOT
 

@@ -27,7 +27,7 @@ p.resetDebugVisualizerCamera(cameraDistance=1, cameraYaw=-135,
 
 base_position = np.array(robot.startPos) + np.array([0.1, 0, 0])
 traj_path = 'trajectories/mocap_csv/622/622_pour_000.csv'
-ts_base2eb, ts_base2wr, ts_base2ee = get_transformed_position(traj_path, 
+ts_base2eb, ts_base2wr, ts_base2ee = get_transformed_trajectory(traj_path, 
                                                               base_position, 
                                                               down_sample=5,
                                                               cut_data=[150, 850])
