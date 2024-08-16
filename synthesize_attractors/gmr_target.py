@@ -1,72 +1,79 @@
-"""
-=====================
-Multimodal Regression
-=====================
-
-In multimodal regression we do not try to fit a function f(x) = y but a
-probability distribution p(y|x) with more than one peak in the probability
-density function.
-
-The dataset that we use to illustrate multimodal regression by Gaussian
-mixture regression is from Section 5 of
-
-C. M. Bishop, "Mixture Density Networks", 1994,
-https://publications.aston.ac.uk/id/eprint/373/1/NCRG_94_004.pdf
-
-On the left side of the figure you see the training data and the fitted
-GMM indicated by ellipses corresponding to its components. On the right
-side you see the predicted probability density p(y|x=0.5). There are
-three peaks that correspond to three different valid predictions. Each
-peak is represented by at least one of the Gaussians of the GMM.
-"""
-print(__doc__)
-
+import os
+import sys
+sys.path.append(os.getcwd())
 import numpy as np
-import matplotlib.pyplot as plt
-from gmr import GMM, plot_error_ellipses
+from sklearn.mixture import BayesianGaussianMixture
+from gmr import GMM, kmeansplusplus_initialization, covariance_initialization
+import pybullet as p
+import time
+import pybullet_data
+from utils import *
+from Robot_arm import ROBOT
 
 
-def f(y, random_state):
-    eps = random_state.rand(*y.shape) * 0.2 - 0.1
-    return y + 0.3 * np.sin(2.0 * np.pi * y) + eps
+def GMR_sample(X_train, target_position):
+    # GMR
+    random_state = np.random.RandomState(0)
+    n_components = 5
+    initial_means = kmeansplusplus_initialization(X_train, n_components, random_state)
+    initial_covs = covariance_initialization(X_train, n_components)
+    bgmm = BayesianGaussianMixture(
+        n_components=n_components, max_iter=500,
+        random_state=random_state).fit(X_train)
+    gmm = GMM(n_components=n_components, priors=bgmm.weights_, means=bgmm.means_,
+              covariances=bgmm.covariances_, random_state=random_state)
+    cgmm = gmm.condition([6, 7, 8], target_position)  # [6, 7, 8]是ee的位置，近似代替target_position
+    sampled_position = cgmm.to_mvn().mean
+    return sampled_position
 
 
-y = np.linspace(0, 1, 1000)
-random_state = np.random.RandomState(3)
-x = f(y, random_state)
-print(np.array(x).shape)
+main_path = 'trajectories/mocap_csv/710/bottle/'
+start_attractor = np.loadtxt(main_path + "start_attractor.txt")  # eb, wr, ee
+end_attractor = np.loadtxt(main_path + "end_attractor.txt")  # eb, wr, ee
 
-XY_train = np.column_stack((x, y))
-gmm = GMM(n_components=4, random_state=random_state)
-gmm.from_samples(XY_train)
+Attractor = end_attractor  # change this into start or end
+X_train = Attractor[::3]
+index = 12
+test_attractor = Attractor[index]
+target_position = test_attractor[6:9]
+print(target_position)
+sampled_position = GMR_sample(X_train, target_position)
+print(sampled_position)
+print(test_attractor[0:6])
 
-plt.figure(figsize=(10, 5))
 
-ax = plt.subplot(121)
-ax.set_title("Dataset and GMM")
-ax.scatter(x, y, s=1)
-colors = ["r", "g", "b", "orange"]
-plot_error_ellipses(ax, gmm, colors=colors)
-ax.set_xlabel("x")
-ax.set_ylabel("y")
+# simulation
+physicsClient = p.connect(p.GUI)#or p.DIRECT for non-graphical version
+p.setAdditionalSearchPath(pybullet_data.getDataPath()) #optionally
+p.configureDebugVisualizer(p.COV_ENABLE_RENDERING, 0)  # 先不渲染
+p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
+p.setGravity(0,0,0)
+planeId = p.loadURDF("plane.urdf")
+robot = ROBOT("anthro_arm_bottle1_demo")
+kpt_ee = ROBOT.keypoint(robot, robot.ee_index)
 
-ax = plt.subplot(122)
-ax.set_title("Conditional Distribution")
-Y = np.linspace(0, 1, 1000)
-Y_test = Y[:, np.newaxis]
-X_test = 0.5
-conditional_gmm = gmm.condition([0], [X_test])
-p_of_Y = conditional_gmm.to_probability_density(Y_test)
-ax.plot(Y, p_of_Y, color="k", label="GMR", lw=3)
-for component_idx in range(conditional_gmm.n_components):
-    p_of_Y = (conditional_gmm.priors[component_idx]
-              * conditional_gmm.extract_mvn(
-                component_idx).to_probability_density(Y_test))
-    ax.plot(Y, p_of_Y, color=colors[component_idx],
-            label="Component %d" % (component_idx + 1))
-ax.set_xlabel("y")
-ax.set_ylabel("$p(y|x=%.1f)$" % X_test)
-ax.legend(loc="best")
+# Rendering
+p.configureDebugVisualizer(p.COV_ENABLE_RENDERING, 1)
+p.configureDebugVisualizer(p.COV_ENABLE_GUI, 1)
+p.resetDebugVisualizerCamera(cameraDistance=1, cameraYaw=-135,
+                                 cameraPitch=-36, cameraTargetPosition=[0.2,0,0.5])
 
-plt.tight_layout()
-plt.show()
+base_position = np.array(robot.startPos) + np.array([-0.05, 0.1, -0.15])  # 肩宽、肩厚、肩高补偿
+
+ts_base2ee = target_position.reshape(1,3)
+ts_base2wr = sampled_position[3:6].reshape(1,3)
+ts_base2eb = sampled_position[0:3].reshape(1,3)
+sample_len = len(ts_base2ee)
+Q_star, Error = robot.opt_kpt(sample_len, ts_base2ee, ts_base2wr, ts_base2eb)
+
+loop = False
+while True:
+    p.stepSimulation()
+    time.sleep(1./240.)
+    if loop:
+        robot.FK(robot.init_joint_angles)
+        time.sleep(0.5)
+    for q_star in Q_star:
+        print("q_star: ", q_star)
+        robot.FK(q_star)
+        time.sleep(0.25)
