@@ -31,7 +31,7 @@ segment_file = np.loadtxt(main_path + "segment.txt")
 
 
 ## loading standard file
-file_index = 0
+file_index = 1
 file_name = file_path + files[file_index]
 print(file_name)
 segment_index = int(segment_file[file_index])
@@ -57,7 +57,7 @@ dmp.imitate(T, Y)
 
 
 # Loading new file
-new_index = 5
+new_index = 30
 new_file_name = file_path + files[new_index]
 new_segment_index = int(segment_file[new_index])
 new_ts_base2eb, new_ts_base2wr, new_ts_base2ee = get_transformed_trajectory(new_file_name, 
