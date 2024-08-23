@@ -12,7 +12,7 @@ class ROBOT:
         self.robot_id = p.loadURDF("models/"+name+"/urdf/"+name+".urdf", 
                       self.startPos, self.startOrientation, useFixedBase=1)
         self.joints_indexes = [i for i in range(p.getNumJoints(self.robot_id)) if p.getJointInfo(self.robot_id, i)[2] != p.JOINT_FIXED]
-        self.elbow_index, self.wrist_index, self.ee_index = self.joints_indexes[2], self.joints_indexes[5], self.joints_indexes[6]
+        self.shoulder_index, self.elbow_index, self.wrist_index, self.ee_index = self.joints_indexes[0], self.joints_indexes[2], self.joints_indexes[5], self.joints_indexes[6]
         for i in range(len(self.joints_indexes)):
             p.resetJointState(bodyUniqueId=self.robot_id,
                               jointIndex=i,

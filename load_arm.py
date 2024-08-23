@@ -25,6 +25,7 @@ robot = ROBOT("anthro_arm_bottle1_demo")
 kpt_ee = ROBOT.keypoint(robot, robot.ee_index)
 kpt_wrist = ROBOT.keypoint(robot, robot.wrist_index)
 kpt_elbow = ROBOT.keypoint(robot, robot.elbow_index)
+kpt_shoulder = ROBOT.keypoint(robot, robot.shoulder_index)
 
 joints_indexes = [i for i in range(p.getNumJoints(robot.robot_id)) 
                   if p.getJointInfo(robot.robot_id, i)[2] != p.JOINT_FIXED]
@@ -39,14 +40,16 @@ joint_idx = 0
 while True:
     p.stepSimulation()
     q += 0.01
-    p.resetJointState(bodyUniqueId=robot.robot_id,
-                      jointIndex=joint_idx,
-                      targetValue=q,
-                      targetVelocity=0)
+    # p.resetJointState(bodyUniqueId=robot.robot_id,
+    #                   jointIndex=joint_idx,
+    #                   targetValue=q,
+    #                   targetVelocity=0)
     # keypoint tracking
+    p.resetBasePositionAndOrientation(robot.robot_id, [0, -q/10, 1], [0, 0, 0, 1])
     kpt_ee.draw_traj()
     kpt_wrist.draw_traj()
     kpt_elbow.draw_traj()
+    kpt_shoulder.draw_traj()
     time.sleep(1./240.)
 
 # 断开连接

@@ -31,7 +31,7 @@ segment_file = np.loadtxt(main_path + "segment.txt")
 
 
 ## loading standard file
-file_index = 1
+file_index = 5
 file_name = file_path + files[file_index]
 print(file_name)
 segment_index = int(segment_file[file_index])
@@ -57,7 +57,7 @@ dmp.imitate(T, Y)
 
 
 # Loading new file
-new_index = 30
+new_index = 15
 new_file_name = file_path + files[new_index]
 new_segment_index = int(segment_file[new_index])
 new_ts_base2eb, new_ts_base2wr, new_ts_base2ee = get_transformed_trajectory(new_file_name, 
@@ -77,10 +77,13 @@ dmp.configure(start_y=new_Y[0], goal_y=new_Y[-1])
 eb_position = new_Y[0][0:3]
 wr_position = new_Y[0][3:6]
 ee_position = new_Y[0][6:9]
+shoulder_position = p.getLinkState(robot.robot_id, robot.shoulder_index)[0]
+L0 = np.linalg.norm(shoulder_position - eb_position)
 L1 = np.linalg.norm(eb_position - wr_position)
 L2 = np.linalg.norm(wr_position - ee_position)
+print(L0, L1, L2)
 
-ct = CouplingTermTriple3DDistance(desired_distance=[L1, L2], lf=(0.0, 1.0, 1.0, 0.0), k=1.0, c1=30, c2=100.0)
+ct = CouplingTermTriple3DDistance(shoulder_position, desired_distance=[L0, L1, L2], lf=(1.0, 1.0, 1.0, 1.0, 0.0), k=1.0, c1=30, c2=100.0)
 # ct = None
 
 imitate_T, imitate_Y = dmp.open_loop(coupling_term=ct)
