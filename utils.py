@@ -5,7 +5,7 @@ from scipy.spatial.transform import Rotation as R
 import os
 
 
-def get_transformed_trajectory(file_name, base_position, down_sample=1, cut_data=False, orientation=False):
+def get_transformed_trajectory(file_name, base_position, cut_data=False, orientation=False):
     """
     Transform keypoints' trajectory into base coordinate
     """
@@ -14,9 +14,9 @@ def get_transformed_trajectory(file_name, base_position, down_sample=1, cut_data
     T_w2eb = read_data(file_name, eb_cols, cut_data)
     T_w2wr = read_data(file_name, wr_cols, cut_data)
     T_w2ee = read_data(file_name, ee_cols, cut_data)
-    qs_base2eb, ts_base2eb = keypoint_transform(T_w2base, T_w2eb, base_position, down_sample)
-    qs_base2wr, ts_base2wr = keypoint_transform(T_w2base, T_w2wr, base_position, down_sample)
-    qs_base2ee, ts_base2ee = keypoint_transform(T_w2base, T_w2ee, base_position, down_sample)
+    qs_base2eb, ts_base2eb = keypoint_transform(T_w2base, T_w2eb, base_position)
+    qs_base2wr, ts_base2wr = keypoint_transform(T_w2base, T_w2wr, base_position)
+    qs_base2ee, ts_base2ee = keypoint_transform(T_w2base, T_w2ee, base_position)
     if orientation:
         return qs_base2eb, ts_base2eb, qs_base2wr, ts_base2wr, qs_base2ee, ts_base2ee
     else:
@@ -50,7 +50,7 @@ def read_data(file_name, data_cols, cut_data=False):
         T_w2data = np.array(df_raw)
     return T_w2data
     
-def keypoint_transform(T_w2base, T_w2k, base_position, down_sample=1):
+def keypoint_transform(T_w2base, T_w2k, base_position):
     qs_w2base = T_w2base[:, :4]
     ts_w2base = T_w2base[:, 4:7]
     qs_w2k = T_w2k[:, :4]
@@ -70,8 +70,8 @@ def keypoint_transform(T_w2base, T_w2k, base_position, down_sample=1):
         # Concatenateis=0)
         qs_base2k = np.concatenate((qs_base2k, q_base2k.reshape(1, 4)), axis=0)
         ts_base2k = np.concatenate((ts_base2k, t_base2k.reshape(1, 3)), axis=0)
-    qs_base2k = qs_base2k[1::down_sample, :]
-    ts_base2k = ts_base2k[1::down_sample, :] + base_position
+    qs_base2k = qs_base2k[1:, :]
+    ts_base2k = ts_base2k[1:, :] + base_position
     return qs_base2k, ts_base2k
 
 def coordinate_transform(q_w2k, t_w2k, q_w2base, t_w2base):
@@ -83,6 +83,9 @@ def coordinate_transform(q_w2k, t_w2k, q_w2base, t_w2base):
     t_base2k = np.linalg.inv(r_w2base).dot(t_w2k + (-t_w2base))
     tf_base2k = np.concatenate((q_base2k, t_base2k), axis=0)
     return q_base2k, t_base2k, tf_base2k
+
+def down_sample(data, interval=1):
+    return data[::interval, :]
 
 def compute_point_dist(A, B):
     for (a, b) in zip(A, B):

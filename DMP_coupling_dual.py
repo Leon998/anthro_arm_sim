@@ -38,18 +38,17 @@ segment_index = int(segment_file[file_index])
 
 ts_base2eb, ts_base2wr, ts_base2ee = get_transformed_trajectory(file_name, 
                                                               base_position, 
-                                                              down_sample=1,
                                                               cut_data=[segment_index, -1])
 Y = np.hstack((ts_base2wr, ts_base2ee))
 print(Y.shape)
-sample_len = len(ts_base2ee)
-p.addUserDebugPoints(ts_base2ee, [([1, 0, 0]) for i in range(sample_len)], 5)
-p.addUserDebugPoints(ts_base2wr, [([0, 1, 0]) for i in range(sample_len)], 5)
-# p.addUserDebugPoints(ts_base2eb, [([0, 0, 1]) for i in range(sample_len)], 5)
+num_points = len(ts_base2ee)
+p.addUserDebugPoints(ts_base2ee, [([1, 0, 0]) for i in range(num_points)], 5)
+p.addUserDebugPoints(ts_base2wr, [([0, 1, 0]) for i in range(num_points)], 5)
+# p.addUserDebugPoints(ts_base2eb, [([0, 0, 1]) for i in range(num_points)], 5)
 
 ## DMP
-T = np.linspace(0.0, 1.0, sample_len)
-dt = 1.0 / sample_len
+T = np.linspace(0.0, 1.0, num_points)
+dt = 1.0 / num_points
 dmp = DMP(n_dims=6, execution_time=1.0, dt=dt, n_weights_per_dim=10,
           int_dt=0.0001)
 dmp.imitate(T, Y)
@@ -62,7 +61,6 @@ new_file_name = file_path + files[new_index]
 new_segment_index = int(segment_file[new_index])
 new_ts_base2eb, new_ts_base2wr, new_ts_base2ee = get_transformed_trajectory(new_file_name, 
                                                               base_position, 
-                                                              down_sample=1,
                                                               cut_data=[new_segment_index, -1])
 new_len = len(new_ts_base2ee)
 p.addUserDebugPoints(new_ts_base2ee, [([1, 0, 0]) for i in range(new_len)], 5)

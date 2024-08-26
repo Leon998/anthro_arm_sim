@@ -46,15 +46,14 @@ segment_index = int(segment_file[file_index])
 
 _, ts_base2eb, qs_base2wr, ts_base2wr, _, ts_base2ee = get_transformed_trajectory(file_name, 
                                                               base_position, 
-                                                              down_sample=2,
                                                               cut_data=[segment_index, -1],
                                                               orientation=True)
 
-sample_len = len(ts_base2ee)
+num_points = len(ts_base2ee)
 print(ts_base2ee.shape)
-p.addUserDebugPoints(ts_base2ee, [([1, 0, 0]) for i in range(sample_len)], 5)
-p.addUserDebugPoints(ts_base2wr, [([0, 1, 0]) for i in range(sample_len)], 5)
-p.addUserDebugPoints(ts_base2eb, [([0, 0, 1]) for i in range(sample_len)], 5)
+p.addUserDebugPoints(ts_base2ee, [([1, 0, 0]) for i in range(num_points)], 5)
+p.addUserDebugPoints(ts_base2wr, [([0, 1, 0]) for i in range(num_points)], 5)
+p.addUserDebugPoints(ts_base2eb, [([0, 0, 1]) for i in range(num_points)], 5)
 
 # 关节索引
 JointIndex = joints_indexes[-1]

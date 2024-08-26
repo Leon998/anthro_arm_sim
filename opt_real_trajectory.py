@@ -32,19 +32,23 @@ file_name = file_path + files[file_index]
 segment_index = int(segment_file[file_index])
 
 _, ts_base2eb, _, ts_base2wr, qs_base2ee, ts_base2ee = get_transformed_trajectory(file_name, 
-                                                              base_position, 
-                                                              down_sample=50,
+                                                              base_position,
                                                               cut_data=[segment_index, -1],
                                                               orientation=True)
 
-sample_len = len(ts_base2ee)
+num_points = len(ts_base2ee)
 print(ts_base2ee.shape)
-p.addUserDebugPoints(ts_base2ee, [([1, 0, 0]) for i in range(sample_len)], 5)
-p.addUserDebugPoints(ts_base2wr, [([0, 1, 0]) for i in range(sample_len)], 5)
-p.addUserDebugPoints(ts_base2eb, [([0, 0, 1]) for i in range(sample_len)], 5)
+p.addUserDebugPoints(ts_base2ee, [([1, 0, 0]) for i in range(num_points)], 5)
+p.addUserDebugPoints(ts_base2wr, [([0, 1, 0]) for i in range(num_points)], 5)
+p.addUserDebugPoints(ts_base2eb, [([0, 0, 1]) for i in range(num_points)], 5)
 time.sleep(1)
-
-Q_star, Error = robot.opt_kpt(sample_len, ts_base2eb, ts_base2wr, ts_base2ee, qs_base2ee)
+interval = 50
+sample_len = num_points // interval + 1
+Q_star, Error = robot.opt_kpt(sample_len, 
+                              down_sample(ts_base2eb, interval), 
+                              down_sample(ts_base2wr, interval), 
+                              down_sample(ts_base2ee, interval), 
+                              down_sample(qs_base2ee, interval))
 print("Q_star = ", Q_star)
 print("Error = ", Error)
 
