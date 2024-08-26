@@ -27,14 +27,15 @@ file_path = main_path + "source/"
 files = os.listdir(file_path)
 segment_file = np.loadtxt(main_path + "segment.txt")
 
-file_index = 12
+file_index = 5
 file_name = file_path + files[file_index]
 segment_index = int(segment_file[file_index])
 
-ts_base2eb, ts_base2wr, ts_base2ee = get_transformed_trajectory(file_name, 
+_, ts_base2eb, _, ts_base2wr, qs_base2ee, ts_base2ee = get_transformed_trajectory(file_name, 
                                                               base_position, 
-                                                              down_sample=60,
-                                                              cut_data=[0, -1])
+                                                              down_sample=50,
+                                                              cut_data=[segment_index, -1],
+                                                              orientation=True)
 
 sample_len = len(ts_base2ee)
 print(ts_base2ee.shape)
@@ -43,12 +44,12 @@ p.addUserDebugPoints(ts_base2wr, [([0, 1, 0]) for i in range(sample_len)], 5)
 p.addUserDebugPoints(ts_base2eb, [([0, 0, 1]) for i in range(sample_len)], 5)
 time.sleep(1)
 
-Q_star, Error = robot.opt_kpt(sample_len, ts_base2ee, ts_base2wr, ts_base2eb)
+Q_star, Error = robot.opt_kpt(sample_len, ts_base2eb, ts_base2wr, ts_base2ee, qs_base2ee)
 print("Q_star = ", Q_star)
 print("Error = ", Error)
 
 
-loop = False
+loop = True
 while True:
     p.stepSimulation()
     time.sleep(1./240.)

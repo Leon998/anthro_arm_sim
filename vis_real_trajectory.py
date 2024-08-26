@@ -25,10 +25,10 @@ base_position = np.array(robot.startPos) + np.array([-0.05, 0.1, -0.15])  # è‚©å
 main_path = 'trajectories/mocap_csv/710/bottle/'
 file_path = main_path + "source/"
 files = os.listdir(file_path)
-# segment_file = np.loadtxt(file_path + "segment.txt")
+# segment_file = np.loadtxt(main_path + "segment.txt")
 
-file_index = 12
-file_name = main_path + files[file_index]
+file_index = 1
+file_name = file_path + files[file_index]
 # segment_index = int(segment_file[file_index])
 
 ts_base2eb, ts_base2wr, ts_base2ee = get_transformed_trajectory(file_name, 

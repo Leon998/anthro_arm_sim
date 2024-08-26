@@ -1,6 +1,7 @@
 import pybullet as p
 import numpy as np
 from scipy.optimize import minimize
+from scipy.spatial.transform import Rotation as R
 
 
 class ROBOT:
@@ -32,6 +33,11 @@ class ROBOT:
         error = goal_pos - current_pos
         return error
     
+    def get_ee_ori_error(self, goal_ori, index, ee=True):
+        current_ori = p.getLinkState(self.robot_id, index)[1]
+        error = R.from_quat(goal_ori).as_matrix() - R.from_quat(current_ori).as_matrix()
+        return error
+    
     def FK(self, q):
         for i in range(len(self.joints_indexes)):
             p.resetJointState(bodyUniqueId=self.robot_id,
@@ -46,7 +52,7 @@ class ROBOT:
         jac_t, jac_r = p.calculateJacobian(self.robot_id, self.ee_index, p.getLinkState(self.robot_id, self.ee_index)[2], self.q, self.dq, zero_vec)
         self.J = np.array(jac_t)
 
-    def opt_kpt(self, sample_len, ee_traj, wrist_traj, elbow_traj):
+    def opt_kpt(self, sample_len, elbow_traj, wrist_traj, ee_traj, ee_ori=0):
         """
         考虑全局最优
         """
@@ -54,17 +60,22 @@ class ROBOT:
         def eqn(q):
             Error = []
             i, j, k= 0, 0, 0
-            for g in ee_traj:
+            for g, o in zip(ee_traj,ee_ori):
                 self.FK(q[i:i+self.dof])
-                Error.append(np.linalg.norm(self.get_error(g, self.ee_index)))
+                pos_error = np.linalg.norm(self.get_error(g, self.ee_index), ord=2)
+                ori_error = np.linalg.norm(self.get_ee_ori_error(o, self.ee_index), ord=2)
+                Error.append(pos_error * 10)
+                Error.append(ori_error * 1)
                 i += self.dof
             for g in wrist_traj:
                 self.FK(q[j:j+self.dof])
-                Error.append(np.linalg.norm(self.get_error(g, self.wrist_index)))
+                pos_error = np.linalg.norm(self.get_error(g, self.wrist_index), ord=2)
+                Error.append(pos_error * 5)
                 j += self.dof
             for g in elbow_traj:
                 self.FK(q[k:k+self.dof])
-                Error.append(np.linalg.norm(self.get_error(g, self.elbow_index)))
+                pos_error = np.linalg.norm(self.get_error(g, self.elbow_index), ord=2)
+                Error.append(pos_error * 10)
                 k += self.dof
             # 以下几种误差的求法都可以，QP最好
             # Error = np.linalg.norm(np.array(Error))
