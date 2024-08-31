@@ -87,6 +87,12 @@ def coordinate_transform(q_w2k, t_w2k, q_w2base, t_w2base):
 def down_sample(data, interval=1):
     return data[::interval, :]
 
+def calculate_speed_3d(displacement_matrix, time_interval=0.01):
+    displacement_diff = np.diff(displacement_matrix, axis=0)
+    speed_matrix = displacement_diff / time_interval
+    speed_matrix = np.vstack(([0, 0, 0], speed_matrix))
+    return speed_matrix
+
 def compute_point_dist(A, B):
     for (a, b) in zip(A, B):
         d = math.sqrt(math.pow(a[0]-b[0],2)

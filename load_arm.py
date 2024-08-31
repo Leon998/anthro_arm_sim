@@ -51,6 +51,8 @@ while True:
     kpt_elbow.draw_traj()
     kpt_shoulder.draw_traj()
     time.sleep(1./240.)
+    eb_position = p.getLinkState(robot.robot_id, robot.elbow_index)[2]
+    print(eb_position)
 
 # 断开连接
 p.disconnect()

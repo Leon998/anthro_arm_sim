@@ -44,11 +44,9 @@ p.addUserDebugPoints(ts_base2eb, [([0, 0, 1]) for i in range(num_points)], 5)
 time.sleep(1)
 interval = 50
 sample_len = num_points // interval + 1
-Q_star, Error = robot.opt_kpt(sample_len, 
-                              down_sample(ts_base2eb, interval), 
-                              down_sample(ts_base2wr, interval), 
-                              down_sample(ts_base2ee, interval), 
-                              down_sample(qs_base2ee, interval))
+ts_base2eb, ts_base2wr, ts_base2ee, qs_base2ee = (down_sample(ts_base2eb, interval), down_sample(ts_base2wr, interval),
+                                                  down_sample(ts_base2ee, interval), down_sample(qs_base2ee, interval))
+Q_star, Error = robot.opt_kpt(sample_len, ts_base2eb, ts_base2wr, ts_base2ee, qs_base2ee)
 print("Q_star = ", Q_star)
 print("Error = ", Error)
 

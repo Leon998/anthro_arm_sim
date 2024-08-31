@@ -67,7 +67,7 @@ while True:
         pos = ts_base2wr[j, :]
         ori = qs_base2wr[j, :]
         # ori = np.array([0, 0, 0, 1])
-        print(ori)
+        # print(ori)
         jointPoses = p.calculateInverseKinematics(robot.robot_id, JointIndex, 
                                                       pos, ori, solver=ikSolver)
         # print(jointPoses)
@@ -83,4 +83,6 @@ while True:
         prevPose = pos
         prevPose1 = ls[4]
         hasPrevPose = 1
+
+
 p.disconnect()

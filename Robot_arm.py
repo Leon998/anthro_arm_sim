@@ -5,7 +5,7 @@ from scipy.spatial.transform import Rotation as R
 
 
 class ROBOT:
-    def __init__(self, name, dof=7):
+    def __init__(self, name, dof=7, kpt_weight=[10, 5, 10, 1]):
         self.startPos = [0, 0, 1]
         self.startOrientation = p.getQuaternionFromEuler([0, 0, 0])
         self.dof = dof
@@ -13,13 +13,15 @@ class ROBOT:
         self.robot_id = p.loadURDF("models/"+name+"/urdf/"+name+".urdf", 
                       self.startPos, self.startOrientation, useFixedBase=1)
         self.joints_indexes = [i for i in range(p.getNumJoints(self.robot_id)) if p.getJointInfo(self.robot_id, i)[2] != p.JOINT_FIXED]
-        self.shoulder_index, self.elbow_index, self.wrist_index, self.ee_index = self.joints_indexes[0], self.joints_indexes[2], self.joints_indexes[5], self.joints_indexes[6]
+        self.shoulder_index, self.elbow_index, self.wrist_index, self.ee_index = (self.joints_indexes[0], self.joints_indexes[2], 
+                                                                                  self.joints_indexes[5], self.joints_indexes[6])
         for i in range(len(self.joints_indexes)):
             p.resetJointState(bodyUniqueId=self.robot_id,
                               jointIndex=i,
                               targetValue=self.init_joint_angles[i],
                               targetVelocity=0)
         self.q_init, self.dq_init, self.ddq_init = self.get_joints_states()
+        self.kpt_weight = kpt_weight
 
     def get_joints_states(self):
         joint_states = p.getJointStates(self.robot_id, range(p.getNumJoints(self.robot_id)))
@@ -46,11 +48,11 @@ class ROBOT:
                               targetVelocity=0)
         self.q, self.dq, self.ddq = self.get_joints_states()
 
-    def get_jacobian(self):
+    def get_jacobian(self, index=6):
         self.q, self.dq, self.ddq = self.get_joints_states()
         zero_vec = [0.0] * p.getNumJoints(self.robot_id)
-        jac_t, jac_r = p.calculateJacobian(self.robot_id, self.ee_index, p.getLinkState(self.robot_id, self.ee_index)[2], self.q, self.dq, zero_vec)
-        self.J = np.array(jac_t)
+        jac_t, jac_r = p.calculateJacobian(self.robot_id, index, p.getLinkState(self.robot_id, index)[2], self.q, self.dq, zero_vec)
+        return np.array(jac_t), np.array(jac_r)
 
     def opt_kpt(self, sample_len, elbow_traj, wrist_traj, ee_traj, ee_ori=0):
         """
@@ -64,18 +66,18 @@ class ROBOT:
                 self.FK(q[i:i+self.dof])
                 pos_error = np.linalg.norm(self.get_error(g, self.ee_index), ord=2)
                 ori_error = np.linalg.norm(self.get_ee_ori_error(o, self.ee_index), ord=2)
-                Error.append(pos_error * 10)
-                Error.append(ori_error * 1)
+                Error.append(pos_error * self.kpt_weight[2])
+                Error.append(ori_error * self.kpt_weight[3])
                 i += self.dof
             for g in wrist_traj:
                 self.FK(q[j:j+self.dof])
                 pos_error = np.linalg.norm(self.get_error(g, self.wrist_index), ord=2)
-                Error.append(pos_error * 5)
+                Error.append(pos_error * self.kpt_weight[1])
                 j += self.dof
             for g in elbow_traj:
                 self.FK(q[k:k+self.dof])
                 pos_error = np.linalg.norm(self.get_error(g, self.elbow_index), ord=2)
-                Error.append(pos_error * 10)
+                Error.append(pos_error * self.kpt_weight[0])
                 k += self.dof
             # 以下几种误差的求法都可以，QP最好
             # Error = np.linalg.norm(np.array(Error))
