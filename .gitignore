@@ -5,6 +5,5 @@ __pycache__/
 .vscode/
 pydmps/pydmps/__pycache__/
 
-movement_primitives/
 
 synthesize_attractors/mnist_data
