@@ -38,6 +38,7 @@ class ROBOT:
     def get_ee_ori_error(self, goal_ori, index, ee=True):
         current_ori = p.getLinkState(self.robot_id, index)[1]
         error = R.from_quat(goal_ori).as_matrix() - R.from_quat(current_ori).as_matrix()
+        # error = goal_ori - current_ori
         return error
     
     def FK(self, q):
@@ -53,6 +54,26 @@ class ROBOT:
         zero_vec = [0.0] * p.getNumJoints(self.robot_id)
         jac_t, jac_r = p.calculateJacobian(self.robot_id, index, p.getLinkState(self.robot_id, index)[2], self.q, self.dq, zero_vec)
         return np.array(jac_t), np.array(jac_r)
+    
+    def DLS(self, J, min_damping=0.1, max_damping=0.1):
+        """
+        使用自适应阻尼最小二乘法计算关节速度。
+        参数:
+        J (ndarray): 雅可比矩阵，维度为 (m, n)。
+        min_damping (float): 最小阻尼因子。
+        max_damping (float): 最大阻尼因子。
+        """
+        # 计算奇异值分解
+        U, S, Vt = np.linalg.svd(J)
+        damping_factor = np.clip(min_damping / (S.min() + 1e-10), min_damping, max_damping)
+        # 计算 J^T (J J^T + λ^2 I)^-1
+        m, n = J.shape
+        identity_matrix = np.eye(m)
+        JJT = np.dot(J, J.T)
+        damped_matrix = JJT + (damping_factor ** 2) * identity_matrix
+        damped_inverse = np.linalg.inv(damped_matrix)
+        J_DLS = np.dot(J.T, damped_inverse)
+        return J_DLS
 
     def opt_kpt(self, sample_len, elbow_traj, wrist_traj, ee_traj, ee_ori=0):
         """
