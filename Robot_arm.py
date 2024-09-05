@@ -7,7 +7,7 @@ from scipy.spatial.transform import Rotation as R
 class ROBOT:
     def __init__(self, name, dof=7, 
                  kpt_weight_opt=[10, 5, 10, 1],
-                 kpt_weight_PDIK=[5, 1, 10, 1]):
+                 kpt_weight_PDIK=[2, 1, 10, 1]):
         self.startPos = [0, 0, 1]
         self.startOrientation = p.getQuaternionFromEuler([0, 0, 0])
         self.dof = dof
@@ -36,12 +36,12 @@ class ROBOT:
         joint_torques = [state[3] for state in joint_states]
         return joint_positions, joint_velocities, joint_torques
     
-    def get_error(self, goal_pos, index, ee=True):
+    def get_error(self, goal_pos, index):
         current_pos = p.getLinkState(self.robot_id, index)[0]
         error = goal_pos - current_pos
         return error
     
-    def get_ee_ori_error(self, goal_ori, index, ee=True):
+    def get_ee_ori_error(self, goal_ori, index):
         current_ori = p.getLinkState(self.robot_id, index)[1]
         error = R.from_quat(goal_ori).as_matrix() - R.from_quat(current_ori).as_matrix()
         # error = goal_ori - current_ori
@@ -123,7 +123,7 @@ class ROBOT:
         J_DLS = np.dot(J.T, damped_inverse)
         return J_DLS
 
-    def opt_kpt(self, sample_len, elbow_traj, wrist_traj, ee_traj, ee_ori=0):
+    def kpt_opt(self, sample_len, elbow_traj, wrist_traj, ee_traj, ee_ori=0):
         """
         考虑全局最优
         """
@@ -157,6 +157,38 @@ class ROBOT:
         Error = Q_star.fun
         Q_star = np.array(Q_star.x).reshape([sample_len,self.dof])
         return Q_star, Error
+    
+    def step_kpt_opt(self, x_eb, x_wr, x_ee, q_ee, q_init):
+        """
+        差分位置优化控制
+        """
+        q_init = q_init  # 长度为n×m（目标数×关节自由度数）
+        def eqn(q):
+            Error = []
+            self.FK(q)
+            # elbow
+            pos_error = np.linalg.norm(self.get_error(x_eb, self.elbow_index), ord=2)
+            Error.append(pos_error * self.kpt_weight_opt[0])
+
+            # wrist
+            pos_error = np.linalg.norm(self.get_error(x_wr, self.wrist_index), ord=2)
+            Error.append(pos_error * self.kpt_weight_opt[1])
+
+            # ee
+            pos_error = np.linalg.norm(self.get_error(x_ee, self.ee_index), ord=2)
+            ori_error = np.linalg.norm(self.get_ee_ori_error(q_ee, self.ee_index), ord=2)
+            Error.append(pos_error * self.kpt_weight_opt[2])
+            Error.append(ori_error * self.kpt_weight_opt[3])
+
+            # 以下几种误差的求法都可以，QP最好
+            # Error = np.linalg.norm(np.array(Error))
+            # Error = np.sum(np.array(Error))
+            Error = np.dot(np.array(Error).T, np.array(Error)) + 0.001 *np.dot(q.T, q)  # QP问题
+            return Error
+        q_star = minimize(eqn, q_init, method='BFGS')
+        Error = q_star.fun
+        q_star = np.array(q_star.x)
+        return q_star
 
     class keypoint:
         def __init__(self, robot, index, hasPrevPose=0, prevPose=0):

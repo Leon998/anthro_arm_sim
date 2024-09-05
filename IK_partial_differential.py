@@ -6,7 +6,7 @@ from utils import *
 from Robot_arm import ROBOT
 
 
-dt = 0.01  # time step for process error dynamics
+dt = 0.01  # time step for PDIK
 alfa = 0.1  # time step for initial IK
 physicsClient = p.connect(p.GUI)#or p.DIRECT for non-graphical version
 p.setAdditionalSearchPath(pybullet_data.getDataPath()) #optionally
@@ -65,10 +65,10 @@ while True:
         ## Compute jacobians
         robot.compute_jacobians()
         robot.step_PDIK(x_eb, x_wr, x_ee, q_ee, non_vec3, non_vec3, non_vec3, non_vec3, dt=alfa)
-        if np.sum(robot.error_all) < 0.15:
+        if np.sum(robot.error_all) < 0.15:  # 这里可以修改成长时间误差变化很小就停止
             INIT_FLAG = False
     if run_once:
-        for i in range(len(X_eb)):
+        for i in range(1, len(X_eb)):  # 从1开始
             print(i)
             robot.compute_jacobians()
             robot.step_PDIK(X_eb[i], X_wr[i], X_ee[i], Q_ee[i], dX_eb[i], dX_wr[i], dX_ee[i], dQ_ee[i], dt=dt)
