@@ -5,7 +5,9 @@ from scipy.spatial.transform import Rotation as R
 
 
 class ROBOT:
-    def __init__(self, name, dof=7, kpt_weight=[10, 5, 10, 1]):
+    def __init__(self, name, dof=7, 
+                 kpt_weight_opt=[10, 5, 10, 1],
+                 kpt_weight_PDIK=[5, 1, 10, 1]):
         self.startPos = [0, 0, 1]
         self.startOrientation = p.getQuaternionFromEuler([0, 0, 0])
         self.dof = dof
@@ -21,7 +23,11 @@ class ROBOT:
                               targetValue=self.init_joint_angles[i],
                               targetVelocity=0)
         self.q_init, self.dq_init, self.ddq_init = self.get_joints_states()
-        self.kpt_weight = kpt_weight
+        self.q_01 = np.array(self.q_init[:3])
+        self.q_12 = np.array(self.q_init[3])
+        self.q_23 = np.array(self.q_init[4:])
+        self.kpt_weight_opt = kpt_weight_opt
+        self.kpt_weight_PDIK = kpt_weight_PDIK
 
     def get_joints_states(self):
         joint_states = p.getJointStates(self.robot_id, range(p.getNumJoints(self.robot_id)))
@@ -49,15 +55,57 @@ class ROBOT:
                               targetVelocity=0)
         self.q, self.dq, self.ddq = self.get_joints_states()
 
+    def compute_jacobians(self):
+        self.J_01, _ = self.get_jacobian(index=self.elbow_index)
+        self.J_01 = self.J_01[:, :3]  # J-01的伪逆要截取一部分，以肘关节为止
+        self.J_02, _ = self.get_jacobian(index=self.wrist_index)
+        self.J_02 = self.J_02[:, :4]  # J-02的伪逆要截取一部分，以腕关节为止
+        self.J_v, self.J_w = self.get_jacobian(index=self.ee_index)
+
     def get_jacobian(self, index=6):
         self.q, self.dq, self.ddq = self.get_joints_states()
         zero_vec = [0.0] * p.getNumJoints(self.robot_id)
         jac_t, jac_r = p.calculateJacobian(self.robot_id, index, p.getLinkState(self.robot_id, index)[2], self.q, self.dq, zero_vec)
         return np.array(jac_t), np.array(jac_r)
     
+    def step_PDIK(self, x_eb, x_wr, x_ee, q_ee, dx_eb, dx_wr, dx_ee, dq_ee, dt=0.01):
+        """
+        Partial Differential Inverse Kinematics (PDIK)
+        """
+        ## Compute errors
+        # position
+        self.eb_error = x_eb - p.getLinkState(self.robot_id, self.elbow_index)[0]
+        self.wr_error = x_wr - p.getLinkState(self.robot_id, self.wrist_index)[0]
+        self.ee_error = x_ee - p.getLinkState(self.robot_id, self.ee_index)[0]
+        # ee orientation
+        self.ee_ori = p.getLinkState(self.robot_id, self.ee_index)[1]  # current orientation
+        self.ee_error_ori = R.from_quat(q_ee) * R.from_quat(self.ee_ori).inv()
+        self.ee_error_ori = self.ee_error_ori.as_rotvec()
+        # overall error
+        self.error_all = [np.linalg.norm(self.eb_error, ord=2), np.linalg.norm(self.wr_error, ord=2), 
+                     np.linalg.norm(self.ee_error, ord=2), np.linalg.norm(R.from_quat(q_ee).as_matrix() - R.from_quat(self.ee_ori).as_matrix(), ord=2)]
+        # print(error_all, np.sum(error_all))
+
+        ## Compute dq
+        self.dq_01_eb = self.DLS(self.J_01).dot(dx_eb + self.kpt_weight_PDIK[0] * self.eb_error)  # elbow effect
+        self.dq_wr = self.DLS(self.J_02).dot(dx_wr + self.kpt_weight_PDIK[1] * self.wr_error)  # wrist effect
+        self.dq_ee_v = self.DLS(self.J_v).dot(dx_ee + self.kpt_weight_PDIK[2] * self.ee_error)  # ee position effect
+        self.dq_ee_w = self.DLS(self.J_w).dot(dq_ee + self.kpt_weight_PDIK[3] * self.ee_error_ori)  # ee orientation effect
+
+        self.dq_01_wr, self.dq_12_wr = self.dq_wr[:3], self.dq_wr[3]    
+        self.dq_01_ee_v, self.dq_12_ee_v, self.dq_23_ee_v = self.dq_ee_v[:3], self.dq_ee_v[3], self.dq_ee_v[4:]
+        self.dq_01_ee_w, self.dq_12_ee_w, self.dq_23_ee_w = self.dq_ee_w[:3], self.dq_ee_w[3], self.dq_ee_w[4:]
+
+        ## Compute q
+        self.q_01 += (self.dq_01_eb + self.dq_01_wr + self.dq_01_ee_v + self.dq_01_ee_w) * dt
+        self.q_12 += (self.dq_12_wr + self.dq_12_ee_v + self.dq_12_ee_w) * dt
+        self.q_23 += (self.dq_23_ee_v + self.dq_23_ee_w) * dt
+        q = np.hstack((self.q_01, self.q_12, self.q_23))
+        self.FK(q)
+    
     def DLS(self, J, min_damping=0.1, max_damping=0.1):
         """
-        使用自适应阻尼最小二乘法计算关节速度。
+        使用自适应阻尼最小二乘法计算广义逆雅可比。
         参数:
         J (ndarray): 雅可比矩阵，维度为 (m, n)。
         min_damping (float): 最小阻尼因子。
@@ -87,18 +135,18 @@ class ROBOT:
                 self.FK(q[i:i+self.dof])
                 pos_error = np.linalg.norm(self.get_error(g, self.ee_index), ord=2)
                 ori_error = np.linalg.norm(self.get_ee_ori_error(o, self.ee_index), ord=2)
-                Error.append(pos_error * self.kpt_weight[2])
-                Error.append(ori_error * self.kpt_weight[3])
+                Error.append(pos_error * self.kpt_weight_opt[2])
+                Error.append(ori_error * self.kpt_weight_opt[3])
                 i += self.dof
             for g in wrist_traj:
                 self.FK(q[j:j+self.dof])
                 pos_error = np.linalg.norm(self.get_error(g, self.wrist_index), ord=2)
-                Error.append(pos_error * self.kpt_weight[1])
+                Error.append(pos_error * self.kpt_weight_opt[1])
                 j += self.dof
             for g in elbow_traj:
                 self.FK(q[k:k+self.dof])
                 pos_error = np.linalg.norm(self.get_error(g, self.elbow_index), ord=2)
-                Error.append(pos_error * self.kpt_weight[0])
+                Error.append(pos_error * self.kpt_weight_opt[0])
                 k += self.dof
             # 以下几种误差的求法都可以，QP最好
             # Error = np.linalg.norm(np.array(Error))

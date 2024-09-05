@@ -90,8 +90,42 @@ def down_sample(data, interval=1):
 def calculate_speed_3d(displacement_matrix, time_interval=0.01):
     displacement_diff = np.diff(displacement_matrix, axis=0)
     speed_matrix = displacement_diff / time_interval
-    speed_matrix = np.vstack(([0, 0, 0], speed_matrix))
+    speed_matrix = np.vstack((speed_matrix, [0, 0, 0]))
     return speed_matrix
+
+def calculate_angular_speed(quaternions, time_interval=0.01):
+    """
+    计算每个时间点的角速度。
+    
+    参数：
+    - quaternions: 形状为 (N, 4) 的四元数序列，N 是时间点数量。
+    - time_interval: 固定的时间间隔。
+    
+    返回：
+    - angular_velocities: 形状为 (N, 3) 的角速度序列，每个时刻对应的角速度向量。
+    """
+    angular_velocities = []
+    
+    # 遍历每一对相邻的四元数
+    for i in range(1, len(quaternions)):
+        # 当前四元数和前一个四元数
+        q1 = R.from_quat(quaternions[i-1])
+        q2 = R.from_quat(quaternions[i])
+        
+        # 计算相对旋转: q_rel = q1.inverse() * q2
+        q_rel = q1.inv() * q2
+        
+        # 提取旋转向量
+        rotvec = q_rel.as_rotvec()  # 旋转向量，单位是弧度
+        
+        # 角速度: ω = Δθ / Δt
+        angular_velocity = rotvec / time_interval
+        
+        angular_velocities.append(angular_velocity)
+    
+    # 末尾时刻速度为零    
+    angular_velocities.append([0, 0, 0])
+    return np.array(angular_velocities)
 
 def compute_point_dist(A, B):
     for (a, b) in zip(A, B):
