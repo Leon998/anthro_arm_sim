@@ -33,9 +33,9 @@ file_name = file_path + files[file_index]
 segment_index = int(segment_file[file_index])
 
 _, ts_base2eb, _, ts_base2wr, qs_base2ee, ts_base2ee = get_transformed_trajectory(file_name, 
-                                                              base_position,
-                                                              cut_data=[segment_index, -1],
-                                                              orientation=True)
+                                                                                  base_position,
+                                                                                  cut_data=[segment_index, -1],
+                                                                                  orientation=True)
 
 num_points = len(ts_base2ee)
 print(ts_base2ee.shape)
