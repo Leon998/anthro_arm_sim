@@ -10,7 +10,7 @@ p.setGravity(0,0,0)
 planeId = p.loadURDF("plane.urdf")
 startPos = [0, 0, 1]
 startOrientation = p.getQuaternionFromEuler([0, 0, 0])
-arm_model = 'anthro_arm'
+arm_model = 'arm'
 robot_id = p.loadURDF("models/"+arm_model+"/urdf/"+arm_model+".urdf", 
                       startPos, startOrientation, useFixedBase=1)
 # 输出joint信息

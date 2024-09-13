@@ -2,6 +2,8 @@ import pybullet as p
 import time
 import pybullet_data
 import math
+import os, sys
+sys.path.append(os.getcwd())
 from utils import *
 from Robot_arm import ROBOT
 
@@ -22,33 +24,30 @@ p.resetDebugVisualizerCamera(cameraDistance=1, cameraYaw=-135,
                                  cameraPitch=-36, cameraTargetPosition=[0.2,0,0.5])
 
 base_position = np.array(robot.startPos) + np.array([-0.05, 0.1, -0.15])  # 肩宽、肩厚、肩高补偿
-main_path = 'trajectories/mocap_csv/710/pry/'
+main_path = 'trajectories/mocap_csv/710/bottle/'
 file_path = main_path + "source/"
 files = os.listdir(file_path)
 segment_file = np.loadtxt(main_path + "segment.txt")
 
-file_index = 5
-file_name = file_path + files[file_index]
-segment_index = int(segment_file[file_index])
+file_list = [i for i in range(0,54)]
+end_attractor = []
+for file_index in file_list:
+    file_name = file_path + files[file_index]
+    print(file_name)
+    segment_index = int(segment_file[file_index])
+    # end attractor
+    end_tg2eb, end_tg2wr, end_tg2ee = get_transformed_trajectory(file_name, 
+                                                                  base_position,
+                                                                  cut_data=[-2, -1],
+                                                                  tg_based=True)
+    
+    sample_len = len(end_tg2ee)
+    p.addUserDebugPoints(end_tg2ee, [([1, 0, 0]) for i in range(sample_len)], 5)
+    p.addUserDebugPoints(end_tg2wr, [([0, 1, 0]) for i in range(sample_len)], 5)
+    p.addUserDebugPoints(end_tg2eb, [([0, 0, 1]) for i in range(sample_len)], 5)
 
-_, ts_base2eb, _, ts_base2wr, qs_base2ee, ts_base2ee = get_transformed_trajectory(file_name, 
-                                                              base_position,
-                                                              cut_data=[segment_index, -1],
-                                                              orientation=True)
-# 检查臂长
-# for t in ts_base2eb:
-#     d = math.sqrt(math.pow(t[0],2)+math.pow(t[1],2)+math.pow(t[2],2))
-#     print(d)
-
-num_points = len(ts_base2ee)
-print(ts_base2ee.shape)
-p.addUserDebugPoints(ts_base2ee, [([1, 0, 0]) for i in range(num_points)], 5)
-p.addUserDebugPoints(ts_base2wr, [([0, 1, 0]) for i in range(num_points)], 5)
-p.addUserDebugPoints(ts_base2eb, [([0, 0, 1]) for i in range(num_points)], 5)
+# TODO PCA on eb and wr
 
 while True:
     p.stepSimulation()
     time.sleep(1./240.)
-    
-# # 断开连接
-# p.disconnect()

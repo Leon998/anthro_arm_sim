@@ -64,7 +64,7 @@ ts_base2ee = target_position.reshape(1,3)
 ts_base2wr = sampled_position[3:6].reshape(1,3)
 ts_base2eb = sampled_position[0:3].reshape(1,3)
 sample_len = len(ts_base2ee)
-Q_star, Error = robot.opt_kpt(sample_len, ts_base2ee, ts_base2wr, ts_base2eb)
+Q_star, Error = robot.kpt_opt(sample_len, ts_base2ee, ts_base2wr, ts_base2eb)
 
 loop = False
 while True:

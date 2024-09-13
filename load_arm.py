@@ -21,7 +21,7 @@ p.setGravity(0, 0, 0)
 # planeId = p.loadURDF("plane.urdf")
 
 # 加载机器人，并设置加载的机器人的位姿
-robot = ROBOT("anthro_arm_bottle1_demo")
+robot = ROBOT("arm_bottle1_demo")
 kpt_ee = ROBOT.keypoint(robot, robot.ee_index)
 kpt_wrist = ROBOT.keypoint(robot, robot.wrist_index)
 kpt_elbow = ROBOT.keypoint(robot, robot.elbow_index)

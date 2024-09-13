@@ -5,22 +5,37 @@ from scipy.spatial.transform import Rotation as R
 import os
 
 
-def get_transformed_trajectory(file_name, base_position, cut_data=False, orientation=False):
+def get_transformed_trajectory(file_name, base_position, cut_data=False, orientation=False, tg_based = False):
     """
     Transform keypoints' trajectory into base coordinate
+
+    tg_based: 转换到target坐标系下
     """
     base_cols, eb_cols, wr_cols, ee_cols, target_cols = get_col_index(file_name)
     T_w2base = read_data(file_name, base_cols, cut_data)
     T_w2eb = read_data(file_name, eb_cols, cut_data)
     T_w2wr = read_data(file_name, wr_cols, cut_data)
     T_w2ee = read_data(file_name, ee_cols, cut_data)
-    qs_base2eb, ts_base2eb = keypoint_transform(T_w2base, T_w2eb, base_position)
-    qs_base2wr, ts_base2wr = keypoint_transform(T_w2base, T_w2wr, base_position)
-    qs_base2ee, ts_base2ee = keypoint_transform(T_w2base, T_w2ee, base_position)
-    if orientation:
-        return qs_base2eb, ts_base2eb, qs_base2wr, ts_base2wr, qs_base2ee, ts_base2ee
-    else:
-        return ts_base2eb, ts_base2wr, ts_base2ee
+    T_w2tg = read_data(file_name, target_cols, cut_data)
+    if not tg_based:
+        qs_base2eb, ts_base2eb = keypoint_transform(T_w2base, T_w2eb, base_position)
+        qs_base2wr, ts_base2wr = keypoint_transform(T_w2base, T_w2wr, base_position)
+        qs_base2ee, ts_base2ee = keypoint_transform(T_w2base, T_w2ee, base_position)
+        if orientation:
+            return qs_base2eb, ts_base2eb, qs_base2wr, ts_base2wr, qs_base2ee, ts_base2ee
+        else:
+            return ts_base2eb, ts_base2wr, ts_base2ee
+    elif tg_based:
+        qs_tg2eb, ts_tg2eb = keypoint_transform(T_w2tg, T_w2eb, 0)
+        qs_tg2wr, ts_tg2wr = keypoint_transform(T_w2tg, T_w2wr, 0)
+        qs_tg2ee, ts_tg2ee = keypoint_transform(T_w2tg, T_w2ee, 0)
+        if orientation:
+            return qs_tg2eb, ts_tg2eb, qs_tg2wr, ts_tg2wr, qs_tg2ee, ts_tg2ee
+        else:
+            return ts_tg2eb, ts_tg2wr, ts_tg2ee
+
+
+
 
 def get_col_index(file_name):
     data_cols = [i for i in range(2, 37)]
@@ -51,6 +66,9 @@ def read_data(file_name, data_cols, cut_data=False):
     return T_w2data
     
 def keypoint_transform(T_w2base, T_w2k, base_position):
+    """
+    Transform Tw2k into Tbase2k (in all time)
+    """
     qs_w2base = T_w2base[:, :4]
     ts_w2base = T_w2base[:, 4:7]
     qs_w2k = T_w2k[:, :4]
@@ -75,6 +93,9 @@ def keypoint_transform(T_w2base, T_w2k, base_position):
     return qs_base2k, ts_base2k
 
 def coordinate_transform(q_w2k, t_w2k, q_w2base, t_w2base):
+    """
+    Transform Tw2k into Tbase2k (in unit time)
+    """
     r_w2base = R.from_quat(q_w2base).as_matrix()  # Get object rotation matrix from quaternion
     r_w2k = R.from_quat(q_w2k).as_matrix()  # Get hand rotation matrix from quaternion
     # Transform

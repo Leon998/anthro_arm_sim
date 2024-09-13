@@ -13,7 +13,7 @@ p.configureDebugVisualizer(p.COV_ENABLE_RENDERING, 0)  # 先不渲染
 p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
 p.setGravity(0,0,0)
 planeId = p.loadURDF("plane.urdf")
-robot = ROBOT("anthro_arm_bottle1_demo")
+robot = ROBOT("arm_bottle1_demo")
 kpt_ee = ROBOT.keypoint(robot, robot.ee_index)
 
 # Rendering
