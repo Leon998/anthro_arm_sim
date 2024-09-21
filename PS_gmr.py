@@ -33,7 +33,7 @@ end_attractor = np.loadtxt(main_path + "end_attractor.txt")  # eb, wr, ee
 
 Attractor = end_attractor  # change this into start or end
 X_train = Attractor[::3]
-index = 12
+index = 29
 test_attractor = Attractor[index]
 target_position = test_attractor[6:9]
 print(target_position)
@@ -42,38 +42,38 @@ print(sampled_position)
 print(test_attractor[0:6])
 
 
-# simulation
-physicsClient = p.connect(p.GUI)#or p.DIRECT for non-graphical version
-p.setAdditionalSearchPath(pybullet_data.getDataPath()) #optionally
-p.configureDebugVisualizer(p.COV_ENABLE_RENDERING, 0)  # 先不渲染
-p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
-p.setGravity(0,0,0)
-planeId = p.loadURDF("plane.urdf")
-robot = ROBOT("anthro_arm_bottle1_demo")
-kpt_ee = ROBOT.keypoint(robot, robot.ee_index)
+# # simulation
+# physicsClient = p.connect(p.GUI)#or p.DIRECT for non-graphical version
+# p.setAdditionalSearchPath(pybullet_data.getDataPath()) #optionally
+# p.configureDebugVisualizer(p.COV_ENABLE_RENDERING, 0)  # 先不渲染
+# p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
+# p.setGravity(0,0,0)
+# planeId = p.loadURDF("plane.urdf")
+# robot = ROBOT("arm_bottle1_demo")
+# kpt_ee = ROBOT.keypoint(robot, robot.ee_index)
 
-# Rendering
-p.configureDebugVisualizer(p.COV_ENABLE_RENDERING, 1)
-p.configureDebugVisualizer(p.COV_ENABLE_GUI, 1)
-p.resetDebugVisualizerCamera(cameraDistance=1, cameraYaw=-135,
-                                 cameraPitch=-36, cameraTargetPosition=[0.2,0,0.5])
+# # Rendering
+# p.configureDebugVisualizer(p.COV_ENABLE_RENDERING, 1)
+# p.configureDebugVisualizer(p.COV_ENABLE_GUI, 1)
+# p.resetDebugVisualizerCamera(cameraDistance=1, cameraYaw=-135,
+#                                  cameraPitch=-36, cameraTargetPosition=[0.2,0,0.5])
 
-base_position = np.array(robot.startPos) + np.array([-0.05, 0.1, -0.15])  # 肩宽、肩厚、肩高补偿
+# base_position = np.array(robot.startPos) + np.array([-0.05, 0.1, -0.15])  # 肩宽、肩厚、肩高补偿
 
-ts_base2ee = target_position.reshape(1,3)
-ts_base2wr = sampled_position[3:6].reshape(1,3)
-ts_base2eb = sampled_position[0:3].reshape(1,3)
-sample_len = len(ts_base2ee)
-Q_star, Error = robot.kpt_opt(sample_len, ts_base2ee, ts_base2wr, ts_base2eb)
+# ts_base2ee = target_position.reshape(1,3)
+# ts_base2wr = sampled_position[3:6].reshape(1,3)
+# ts_base2eb = sampled_position[0:3].reshape(1,3)
+# sample_len = len(ts_base2ee)
+# Q_star, Error = robot.kpt_opt(sample_len, ts_base2ee, ts_base2wr, ts_base2eb)
 
-loop = False
-while True:
-    p.stepSimulation()
-    time.sleep(1./240.)
-    if loop:
-        robot.FK(robot.init_joint_angles)
-        time.sleep(0.5)
-    for q_star in Q_star:
-        print("q_star: ", q_star)
-        robot.FK(q_star)
-        time.sleep(0.25)
+# loop = False
+# while True:
+#     p.stepSimulation()
+#     time.sleep(1./240.)
+#     if loop:
+#         robot.FK(robot.init_joint_angles)
+#         time.sleep(0.5)
+#     for q_star in Q_star:
+#         print("q_star: ", q_star)
+#         robot.FK(q_star)
+#         time.sleep(0.25)

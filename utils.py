@@ -34,7 +34,9 @@ def get_transformed_trajectory(file_name, base_position, cut_data=False, orienta
         else:
             return ts_tg2eb, ts_tg2wr, ts_tg2ee
 
-
+def get_ee_rotation(ts_base2wr, qs_base2ee, ts_base2ee):
+    
+    pass
 
 
 def get_col_index(file_name):
