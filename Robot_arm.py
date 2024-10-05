@@ -189,6 +189,37 @@ class ROBOT:
         Error = q_star.fun
         q_star = np.array(q_star.x)
         return q_star
+    
+    def subspace_opt_position(self, pca, kpt_index, cons_kpt_index, ee_ori, q_init, subspace_mean):
+        """
+        假设ee方向为确定约束，仅针对关键点位置进行子空间优化
+
+        Parameters
+        ----------
+        pca : pcamodel
+        kpt_index : a list containing the index of kpts (e.g. [robot.elbow_index, robot.wrist_index])
+        cons_kpt_index : the index of kpt that should be constrained（PCA梯度×机器人雅可比）
+        ee_ori : 末端朝向（求复合导数太麻烦了，干脆直接放到目标函数里）
+        constrains : a dictionary containing all the cartisian geomety constrains
+
+        Returns
+        ----------
+
+        """
+        q_init = q_init  # 长度为n×m（目标数×关节自由度数）
+        def eqn(q):
+            self.FK(q)
+            kpt_position = []
+            for index in kpt_index:
+                current_pos = p.getLinkState(self.robot_id, index)[0]
+                # TODO 这里还需要先把笛卡尔坐标转换到target坐标下
+
+                #############################################
+                kpt_position = np.hstack((kpt_position, current_pos)).reshape(1, -1)
+            subspace_position = pca.transform(kpt_position)
+            error = np.linalg.norm(subspace_position - subspace_mean, ord=2)
+
+            
 
     class keypoint:
         def __init__(self, robot, index, hasPrevPose=0, prevPose=0):

@@ -13,6 +13,16 @@ import matplotlib.pyplot as plt
 
 
 def GMR_sample(X_train, target_position):
+    """
+    Parameters
+    ----------
+    X_train : array-like of shape (n_samples, 6) (6 = 3 for pca dim + 3 for target_positions)
+    target_position : conditioned target position, shape (1, 3)
+
+    Returns
+    ----------
+    sampled_position : mean value of GMM under the conditioned target_position, shape (1, 3)
+    """
     # GMR
     random_state = np.random.RandomState(0)
     n_components = 5
@@ -57,19 +67,22 @@ for file_index in file_list:
     file_name = file_path + files[file_index]
     segment_index = int(segment_file[file_index])
     # goal attractor
-    goal_eb, goal_wr, goal_ee = get_transformed_trajectory(file_name, 
+    goal_tg2eb, goal_tg2wr, goal_tg2ee = get_transformed_trajectory(file_name, 
                                                                   base_position,
                                                                   cut_data=[-2, -1],
                                                                   tg_based=True)
     if file_index < 27:
-        p.addUserDebugPoints(goal_wr, [[0, 1, 0]], 5)
-        p.addUserDebugPoints(goal_eb, [[0, 0, 1]], 5)
+        p.addUserDebugPoints(goal_tg2wr, [[0, 1, 0]], 5)
+        p.addUserDebugPoints(goal_tg2eb, [[0, 0, 1]], 5)
     else:
-        p.addUserDebugPoints(goal_wr, [[0.5, 1, 0.5]], 5)
-        p.addUserDebugPoints(goal_eb, [[0.5, 0.5, 1]], 5)
-    goals.append(np.hstack((goal_eb, goal_wr)).reshape(-1))
+        p.addUserDebugPoints(goal_tg2wr, [[0.5, 1, 0.5]], 5)
+        p.addUserDebugPoints(goal_tg2eb, [[0.5, 0.5, 1]], 5)
+    # TODO 需要先对所有关键点做PCA，方差小于某个阈值，那么说明是强约束，否则拿去做GMM
 
-# TODO PCA on eb and wr
+    ######################################################################
+    goals.append(np.hstack((goal_tg2eb, goal_tg2wr)).reshape(-1))
+
+# PCA on eb and wr
 goals = np.array(goals)
 print("Original goal shape: ", goals.shape)
 pca = decomposition.PCA(n_components=3)
@@ -78,18 +91,28 @@ X = pca.transform(goals)
 print("Transformed component shape: ", X.shape)
 print("Explained variance ratio: ", pca.explained_variance_ratio_)
 
-## GMR
+# GMR
 X_train = np.hstack((X, target_positions))
 print("GMR train set shape: ", X_train.shape)
 
+# 测试时的目标位置
 test_index = 29
 target_position = target_positions[test_index]
 sampled_position = GMR_sample(X_train, target_position)
 print("Sampled component mean: ", sampled_position)
-sampled_goal = pca.inverse_transform(sampled_position.reshape(1, -1)).reshape(-1)
-goal_eb, goal_wr = sampled_goal[:3], sampled_goal[3:]
-print(goal_eb, goal_wr)
 
+
+### TODO Optimization in pca space ###
+
+
+
+######################################
+
+
+# 直接逆变换到笛卡尔空间得到关键点位置，老方法。
+sampled_goal = pca.inverse_transform(sampled_position.reshape(1, -1)).reshape(-1)
+goal_tg2eb, goal_tg2wr = sampled_goal[:3], sampled_goal[3:]
+print(goal_tg2eb, goal_tg2wr)
 
 # visualizing manifold
 fig = plt.figure(1, figsize=(4, 3))
