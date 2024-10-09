@@ -197,10 +197,10 @@ class ROBOT:
         Parameters
         ----------
         pca : pcamodel
-        kpt_index : a list containing the index of kpts (e.g. [robot.elbow_index, robot.wrist_index])
-        cons_kpt_index : the index of kpt that should be constrained（PCA梯度×机器人雅可比）
-        ee_ori : 末端朝向（求复合导数太麻烦了，干脆直接放到目标函数里）
-        constrains : a dictionary containing all the cartisian geomety constrains
+        kpt_index : a list containing the index of kpts (e.g. [robot.elbow_index, robot.wrist_index])（PCA梯度×机器人雅可比）
+        cons_kpt_index : the index of kpt that should be constrained（机器人雅可比）
+        ee_ori : 末端朝向（也要求梯度）
+        constrains : a dictionary containing all the cartesian geomety constrains
 
         Returns
         ----------
@@ -212,12 +212,13 @@ class ROBOT:
             kpt_position = []
             for index in kpt_index:
                 current_pos = p.getLinkState(self.robot_id, index)[0]
-                # TODO 这里还需要先把笛卡尔坐标转换到target坐标下
+                # TODO 这里需要先把笛卡尔坐标转换到target坐标下
 
                 #############################################
                 kpt_position = np.hstack((kpt_position, current_pos)).reshape(1, -1)
             subspace_position = pca.transform(kpt_position)
             error = np.linalg.norm(subspace_position - subspace_mean, ord=2)
+            # TODO 目标函数、约束的梯度求法
 
             
 

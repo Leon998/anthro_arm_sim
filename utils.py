@@ -3,11 +3,14 @@ import numpy as np
 import math
 from scipy.spatial.transform import Rotation as R
 import os
+import math
 
+
+q_a = np.array([0.462, 0.191, 0.462, 0.733])  # Auxillary quaternion
 
 def get_transformed_trajectory(file_name, base_position, cut_data=False, orientation=False, tg_based = False):
     """
-    Transform keypoints' trajectory into base coordinate
+    Transform keypoints' trajectory into specified coordinate
 
     tg_based: 转换到target坐标系下
     """
@@ -34,9 +37,55 @@ def get_transformed_trajectory(file_name, base_position, cut_data=False, orienta
         else:
             return ts_tg2eb, ts_tg2wr, ts_tg2ee
 
-def get_ee_rotation(ts_base2wr, qs_base2ee, ts_base2ee):
+def quaternion_product(q1, q2, conjugate=False):
+    """
+    计算四元数q1与q2的共轭的乘积。
+    q1: 第一个四元数，形式为 ((x, y, z), v)，v 是实部，(x, y, z) 是虚部（一个三维向量）。
+    q2: 第二个四元数，形式为 ((x, y, z), v)。
     
-    pass
+    返回值: 乘积后的四元数，形式为 ((x, y, z), v)。
+    """
+    # 提取四元数的实部和虚部
+    u1, v1 = q1
+    u2, v2 = q2
+    
+    # 虚部的分量
+    x1, y1, z1 = u1
+    if conjugate:
+        x2, y2, z2 = (-u2[0], -u2[1], -u2[2])
+    else:
+        x2, y2, z2 = (u2[0], u2[1], u2[2])
+    
+    # 计算实部 v
+    v = v1 * v2 - (x1 * x2 + y1 * y2 + z1 * z2)
+    
+    # 计算虚部 u = (x, y, z)
+    x = v1 * x2 + x1 * v2 + y1 * z2 - z1 * y2
+    y = v1 * y2 + y1 * v2 + z1 * x2 - x1 * z2
+    z = v1 * z2 + z1 * v2 + x1 * y2 - y1 * x2
+    
+    # 返回结果，形式为 ((x, y, z), v)
+    return ((x, y, z), v)
+
+def quaternion2euler(q_n):
+    q = quaternion_product(((q_n[0], q_n[1], q_n[2]), q_n[3]), ((q_a[0], q_a[1], q_a[2]), q_a[3]), conjugate=True)  # (u, v)
+    u, v = q
+    if u == (0, 0, 0):
+        log_q = np.array([0, 0, 0])
+    else:
+        log_q = math.acos(v) * np.array(u) / np.linalg.norm(u, ord=2)
+    return log_q
+
+def euler2quaternion(log_q):
+    norm_log_q = np.linalg.norm(log_q, ord=2)
+    if np.all(log_q[:]==0):
+        exp_log_q = ((0, 0, 0), 1)
+    else:
+        exp_log_q = (tuple((math.sin(np.linalg.norm(log_q, ord=2))) * log_q / norm_log_q), math.cos(norm_log_q))
+    print(exp_log_q)
+    q_n = quaternion_product(exp_log_q, ((q_a[0], q_a[1], q_a[2]), q_a[3]), conjugate=False)
+    q_n = np.hstack((np.array(q_n[0]), np.array(q_n[1])))
+    return q_n
 
 
 def get_col_index(file_name):

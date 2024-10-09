@@ -1,8 +1,9 @@
 import numpy as np
 
-kpt_positions = []
-current_pos = np.array([1, 2, 3])
-kpt_positions = np.hstack((kpt_positions, current_pos)).reshape(-1)
-current_pos = np.array([4, 5, 6])
-kpt_positions = np.hstack((kpt_positions, current_pos)).reshape(-1)
-print(kpt_positions)
+A = np.empty((0, 3))
+a = np.array([0, 0, 0])
+A = np.vstack((A, a))
+b = np.array([3, 4, 5])
+A = np.vstack((A, b))
+print(A)
+print(np.all(a[:]==0))

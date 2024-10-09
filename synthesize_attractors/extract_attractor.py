@@ -36,22 +36,24 @@ for file_index in file_list:
     file_name = file_path + files[file_index]
     segment_index = int(segment_file[file_index])
     # start attractor
-    start_base2eb, start_base2wr, start_base2ee = get_transformed_trajectory(file_name, 
+    _, start_base2eb, _, start_base2wr, start_q_base2ee, start_base2ee = get_transformed_trajectory(file_name, 
                                                                   base_position,
-                                                                  cut_data=[segment_index, segment_index+1])
+                                                                  cut_data=[segment_index, segment_index+1],
+                                                                  orientation=True)
     sample_len = len(start_base2ee)
     p.addUserDebugPoints(start_base2ee, [([1, 0, 0]) for i in range(sample_len)], 5)
     p.addUserDebugPoints(start_base2wr, [([1, 0, 0]) for i in range(sample_len)], 5)
     p.addUserDebugPoints(start_base2eb, [([1, 0, 0]) for i in range(sample_len)], 5)
-    start_attractor.append(np.hstack((start_base2eb, start_base2wr, start_base2ee)).reshape(-1).tolist())
+    start_attractor.append(np.hstack((start_base2eb, start_base2wr, start_base2ee, start_q_base2ee)).reshape(-1).tolist())
     # end attractor
-    end_base2eb, end_base2wr, end_base2ee = get_transformed_trajectory(file_name, 
+    _, end_base2eb, _, end_base2wr, end_q_base2ee, end_base2ee = get_transformed_trajectory(file_name, 
                                                                   base_position,
-                                                                  cut_data=[-2, -1])
+                                                                  cut_data=[-2, -1],
+                                                                  orientation=True)
     p.addUserDebugPoints(end_base2ee, [([0, 0, 1]) for i in range(sample_len)], 5)
     p.addUserDebugPoints(end_base2wr, [([0, 0, 1]) for i in range(sample_len)], 5)
     p.addUserDebugPoints(end_base2eb, [([0, 0, 1]) for i in range(sample_len)], 5)
-    end_attractor.append(np.hstack((end_base2eb, end_base2wr, end_base2ee)).reshape(-1).tolist())
+    end_attractor.append(np.hstack((end_base2eb, end_base2wr, end_base2ee, end_q_base2ee)).reshape(-1).tolist())
 
 np.savetxt(main_path + "start_attractor.txt", start_attractor)
 np.savetxt(main_path + "end_attractor.txt", end_attractor)
