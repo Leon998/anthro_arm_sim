@@ -58,6 +58,7 @@ main_path = 'trajectories/mocap_csv/710/bottle/'
 file_path = main_path + "source/"
 files = os.listdir(file_path)
 file_list = [i for i in range(0,54)]
+segment_file = np.loadtxt(main_path + "segment.txt")
 # point docker
 ts_tg2eb = np.empty((0, 3))
 ts_tg2wr = np.empty((0, 3))
@@ -66,18 +67,20 @@ logqs_tg2ee = np.empty((0, 3))
 ts_base2tg = np.empty((0, 3))
 qs_base2tg = np.empty((0, 4))
 
-test_index = 15  # 测试数据索引
-# 提取所有示教数据在最后一时刻的关键点位置
+test_index = 5  # 测试数据索引
+# 提取所有示教数据在一时刻的关键点位置
 for file_index in file_list:
     file_name = file_path + files[file_index]
+    segment_index = int(segment_file[file_index])
+    frames = [-2, -1]
     _, t_tg2eb, _, t_tg2wr, q_tg2ee, t_tg2ee, _, _ = get_transformed_trajectory(file_name, 
                                                                                 base_position,
-                                                                                cut_data=[-2, -1],
+                                                                                cut_data=frames,
                                                                                 orientation=True,
                                                                                 tg_based=True)  # 机器人坐标系下的所有点坐标
     _, t_base2eb, _, t_base2wr, q_base2ee, t_base2ee, q_base2tg, t_base2tg = get_transformed_trajectory(file_name, 
                                                                                                         base_position,
-                                                                                                        cut_data=[-2, -1],
+                                                                                                        cut_data=frames,
                                                                                                         orientation=True)  # target坐标系下的所有点坐标
     if file_index < 27:
         p.addUserDebugPoints(t_tg2ee, [[1, 0, 0]], 5)
