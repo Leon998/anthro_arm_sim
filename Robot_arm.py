@@ -231,13 +231,14 @@ class ROBOT:
                 t_base2k = p.getLinkState(self.robot_id, index)[0]
                 q_base2k = np.array([0, 0, 0, 1])  # 不关心关键点的朝向
                 # 这里需要先把笛卡尔坐标转换到target坐标下
-                _, t_tg2k = coordinate_transform(q_base2k, t_base2k, q_base2tg, t_base2tg)
+                _, t_tg2k, _ = coordinate_transform(q_base2k, t_base2k, q_base2tg, t_base2tg)
                 x = np.hstack((x, t_tg2k))
                 ### 雅可比矩阵
-                J_kpt = np.vstack((J_kpt, self.get_jacobian(index)))
+                J_v, _ = self.get_jacobian(index)
+                J_kpt = np.vstack((J_kpt, J_v))
             x = x.reshape((1, -1))
             z = pca.transform(x)  # shape (1, 3)
-            jac = 2*(z - mu) * pca.components_ * J_kpt  # (1, 3), (3, 6), (6, 7)
+            jac = 2*(z - mu) @ pca.components_ @ J_kpt  # (1, 3), (3, 6), (6, 7)
             return jac
         def cons_position(q):
             self.FK(q)
@@ -252,7 +253,7 @@ class ROBOT:
             return - np.dot(e.T, e) + 0.015
         cons = [{'type': 'ineq', 'fun': cons_position}, 
                 {'type': 'ineq', 'fun': cons_orientation}]
-        q_star = minimize(func, q_init, method='SLSQP', constraints=cons)
+        q_star = minimize(func, q_init, method='SLSQP', jac=func_jac, constraints=cons)
         Error = q_star.fun
         q_star = np.array(q_star.x)
         return q_star

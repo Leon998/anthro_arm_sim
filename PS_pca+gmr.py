@@ -66,7 +66,7 @@ logqs_tg2ee = np.empty((0, 3))
 ts_base2tg = np.empty((0, 3))
 qs_base2tg = np.empty((0, 4))
 
-test_index = 5  # 测试数据索引
+test_index = 15  # 测试数据索引
 # 提取所有示教数据在最后一时刻的关键点位置
 for file_index in file_list:
     file_name = file_path + files[file_index]
@@ -155,25 +155,21 @@ print("Sampled subspace_mean: ", mu)
 
 # ### TODO Optimization in pca space ###
 # Constrain
-cons_q_base2ee, cons_t_base2ee = transform(q_base2tg, t_base2tg, cons_q_tg2ee, cons_t_tg2ee)
+cons_q_base2ee, cons_t_base2ee = rgbody_transform(q_base2tg, t_base2tg, cons_q_tg2ee, cons_t_tg2ee)
 print("target position in base:", t_base2tg)
 print("Real ee constrains in base: ", q_base2ee_test, t_base2ee_test)
 print("Learned ee constrains in base: ", cons_q_base2ee, cons_t_base2ee)
 p.addUserDebugPoints([t_base2tg], [[0, 0, 0]], 5)
-p.addUserDebugPoints([t_base2ee_test], [[0, 1, 0]], 5)
-p.addUserDebugPoints([cons_t_base2ee], [[1, 1, 1]], 5)
+p.addUserDebugPoints([t_base2ee_test], [[0, 1, 0]], 5)  # 真实末端位置
+p.addUserDebugPoints([cons_t_base2ee], [[1, 1, 1]], 5)  # 学到的末端约束位置
 
 
 kpt_list = [robot.elbow_index, robot.wrist_index]
 cons_dict = {robot.ee_index:t_base2ee_test}
 ee_ori = q_base2ee_test
 q_init = [0. for i in range(robot.dof)]
-q_star = robot.subspace_opt_position(pca, kpt_list, cons_dict, ee_ori, 
-                                     q_init, q_base2tg, t_base2tg, mu)
+q_star = robot.subspace_opt_position(pca, kpt_list, cons_dict, ee_ori, q_init, q_base2tg, t_base2tg, mu)
 robot.FK(q_star)
-
-
-# ######################################
 
 
 # # 直接逆变换到笛卡尔空间得到关键点位置，老方法。

@@ -107,7 +107,7 @@ def coordinate_transform(q_w2k, t_w2k, q_w2base, t_w2base):
     tf_base2k = np.concatenate((q_base2k, t_base2k), axis=0)
     return q_base2k, t_base2k, tf_base2k
 
-def transform(q_base2tg, t_base2tg, q_tg2k, t_tg2k):
+def rgbody_transform(q_base2tg, t_base2tg, q_tg2k, t_tg2k):
     """
     对空间中某一刚体k进行坐标变换，即将其从tg坐标系转换到base坐标系下
     """
