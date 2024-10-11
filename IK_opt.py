@@ -32,7 +32,7 @@ file_index = 5
 file_name = file_path + files[file_index]
 segment_index = int(segment_file[file_index])
 
-_, ts_base2eb, _, ts_base2wr, qs_base2ee, ts_base2ee = get_transformed_trajectory(file_name, 
+_, ts_base2eb, _, ts_base2wr, qs_base2ee, ts_base2ee, _, t_base2tg = get_transformed_trajectory(file_name, 
                                                                                   base_position,
                                                                                   cut_data=[segment_index, -1],
                                                                                   orientation=True)
@@ -42,6 +42,7 @@ print(ts_base2ee.shape)
 p.addUserDebugPoints(ts_base2ee, [([1, 0, 0]) for i in range(num_points)], 5)
 p.addUserDebugPoints(ts_base2wr, [([0, 1, 0]) for i in range(num_points)], 5)
 p.addUserDebugPoints(ts_base2eb, [([0, 0, 1]) for i in range(num_points)], 5)
+p.addUserDebugPoints(t_base2tg, [([0, 0, 0]) for i in range(num_points)], 5)
 time.sleep(1)
 interval = 2
 sample_len = num_points // interval + 1

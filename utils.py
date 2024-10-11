@@ -24,69 +24,20 @@ def get_transformed_trajectory(file_name, base_position, cut_data=False, orienta
         qs_base2eb, ts_base2eb = keypoint_transform(T_w2base, T_w2eb, base_position)
         qs_base2wr, ts_base2wr = keypoint_transform(T_w2base, T_w2wr, base_position)
         qs_base2ee, ts_base2ee = keypoint_transform(T_w2base, T_w2ee, base_position)
+        qs_base2tg, ts_base2tg = keypoint_transform(T_w2base, T_w2tg, base_position)
         if orientation:
-            return qs_base2eb, ts_base2eb, qs_base2wr, ts_base2wr, qs_base2ee, ts_base2ee
+            return qs_base2eb, ts_base2eb, qs_base2wr, ts_base2wr, qs_base2ee, ts_base2ee, qs_base2tg, ts_base2tg
         else:
-            return ts_base2eb, ts_base2wr, ts_base2ee
+            return ts_base2eb, ts_base2wr, ts_base2ee, ts_base2tg
     elif tg_based:
         qs_tg2eb, ts_tg2eb = keypoint_transform(T_w2tg, T_w2eb, 0)
         qs_tg2wr, ts_tg2wr = keypoint_transform(T_w2tg, T_w2wr, 0)
         qs_tg2ee, ts_tg2ee = keypoint_transform(T_w2tg, T_w2ee, 0)
+        qs_tg2base, ts_tg2base = keypoint_transform(T_w2tg, T_w2base, 0)
         if orientation:
-            return qs_tg2eb, ts_tg2eb, qs_tg2wr, ts_tg2wr, qs_tg2ee, ts_tg2ee
+            return qs_tg2eb, ts_tg2eb, qs_tg2wr, ts_tg2wr, qs_tg2ee, ts_tg2ee, qs_tg2base, ts_tg2base
         else:
-            return ts_tg2eb, ts_tg2wr, ts_tg2ee
-
-def quaternion_product(q1, q2, conjugate=False):
-    """
-    计算四元数q1与q2的共轭的乘积。
-    q1: 第一个四元数，形式为 ((x, y, z), v)，v 是实部，(x, y, z) 是虚部（一个三维向量）。
-    q2: 第二个四元数，形式为 ((x, y, z), v)。
-    
-    返回值: 乘积后的四元数，形式为 ((x, y, z), v)。
-    """
-    # 提取四元数的实部和虚部
-    u1, v1 = q1
-    u2, v2 = q2
-    
-    # 虚部的分量
-    x1, y1, z1 = u1
-    if conjugate:
-        x2, y2, z2 = (-u2[0], -u2[1], -u2[2])
-    else:
-        x2, y2, z2 = (u2[0], u2[1], u2[2])
-    
-    # 计算实部 v
-    v = v1 * v2 - (x1 * x2 + y1 * y2 + z1 * z2)
-    
-    # 计算虚部 u = (x, y, z)
-    x = v1 * x2 + x1 * v2 + y1 * z2 - z1 * y2
-    y = v1 * y2 + y1 * v2 + z1 * x2 - x1 * z2
-    z = v1 * z2 + z1 * v2 + x1 * y2 - y1 * x2
-    
-    # 返回结果，形式为 ((x, y, z), v)
-    return ((x, y, z), v)
-
-def quaternion2euler(q_n):
-    q = quaternion_product(((q_n[0], q_n[1], q_n[2]), q_n[3]), ((q_a[0], q_a[1], q_a[2]), q_a[3]), conjugate=True)  # (u, v)
-    u, v = q
-    if u == (0, 0, 0):
-        log_q = np.array([0, 0, 0])
-    else:
-        log_q = math.acos(v) * np.array(u) / np.linalg.norm(u, ord=2)
-    return log_q
-
-def euler2quaternion(log_q):
-    norm_log_q = np.linalg.norm(log_q, ord=2)
-    if np.all(log_q[:]==0):
-        exp_log_q = ((0, 0, 0), 1)
-    else:
-        exp_log_q = (tuple((math.sin(np.linalg.norm(log_q, ord=2))) * log_q / norm_log_q), math.cos(norm_log_q))
-    print(exp_log_q)
-    q_n = quaternion_product(exp_log_q, ((q_a[0], q_a[1], q_a[2]), q_a[3]), conjugate=False)
-    q_n = np.hstack((np.array(q_n[0]), np.array(q_n[1])))
-    return q_n
-
+            return ts_tg2eb, ts_tg2wr, ts_tg2ee, ts_tg2base
 
 def get_col_index(file_name):
     data_cols = [i for i in range(2, 37)]
@@ -156,8 +107,68 @@ def coordinate_transform(q_w2k, t_w2k, q_w2base, t_w2base):
     tf_base2k = np.concatenate((q_base2k, t_base2k), axis=0)
     return q_base2k, t_base2k, tf_base2k
 
+def transform(q_base2tg, t_base2tg, q_tg2k, t_tg2k):
+    """
+    对空间中某一刚体k进行坐标变换，即将其从tg坐标系转换到base坐标系下
+    """
+    R_base2tg = R.from_quat(q_base2tg).as_matrix()
+    R_tg2k = R.from_quat(q_tg2k).as_matrix()
+    q = R.from_matrix(R_base2tg.dot(R_tg2k)).as_quat()
+    t = R_base2tg.dot(t_tg2k) + t_base2tg
+    return q, t
+
 def down_sample(data, interval=1):
     return data[::interval, :]
+
+def quaternion_product(q1, q2, conjugate=False):
+    """
+    计算四元数q1与q2的共轭的乘积。
+    q1: 第一个四元数，形式为 ((x, y, z), v)，v 是实部，(x, y, z) 是虚部（一个三维向量）。
+    q2: 第二个四元数，形式为 ((x, y, z), v)。
+    
+    返回值: 乘积后的四元数，形式为 ((x, y, z), v)。
+    """
+    # 提取四元数的实部和虚部
+    u1, v1 = q1
+    u2, v2 = q2
+    
+    # 虚部的分量
+    x1, y1, z1 = u1
+    if conjugate:
+        x2, y2, z2 = (-u2[0], -u2[1], -u2[2])
+    else:
+        x2, y2, z2 = (u2[0], u2[1], u2[2])
+    
+    # 计算实部 v
+    v = v1 * v2 - (x1 * x2 + y1 * y2 + z1 * z2)
+    
+    # 计算虚部 u = (x, y, z)
+    x = v1 * x2 + x1 * v2 + y1 * z2 - z1 * y2
+    y = v1 * y2 + y1 * v2 + z1 * x2 - x1 * z2
+    z = v1 * z2 + z1 * v2 + x1 * y2 - y1 * x2
+    
+    # 返回结果，形式为 ((x, y, z), v)
+    return ((x, y, z), v)
+
+def quaternion2euler(q_n):
+    q = quaternion_product(((q_n[0], q_n[1], q_n[2]), q_n[3]), ((q_a[0], q_a[1], q_a[2]), q_a[3]), conjugate=True)  # (u, v)
+    u, v = q
+    if u == (0, 0, 0):
+        log_q = np.array([0, 0, 0])
+    else:
+        log_q = math.acos(v) * np.array(u) / np.linalg.norm(u, ord=2)
+    return log_q
+
+def euler2quaternion(log_q):
+    norm_log_q = np.linalg.norm(log_q, ord=2)
+    if np.all(log_q[:]==0):
+        exp_log_q = ((0, 0, 0), 1)
+    else:
+        exp_log_q = (tuple((math.sin(np.linalg.norm(log_q, ord=2))) * log_q / norm_log_q), math.cos(norm_log_q))
+    print(exp_log_q)
+    q_n = quaternion_product(exp_log_q, ((q_a[0], q_a[1], q_a[2]), q_a[3]), conjugate=False)
+    q_n = np.hstack((np.array(q_n[0]), np.array(q_n[1])))
+    return q_n
 
 def calculate_speed_3d(displacement_matrix, time_interval=0.01):
     displacement_diff = np.diff(displacement_matrix, axis=0)
