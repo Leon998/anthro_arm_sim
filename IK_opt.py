@@ -6,6 +6,9 @@ from utils import *
 from Robot_arm import ROBOT
 
 
+arm = "arm_chy"  # 用哪个arm
+tool = "bottle1"  # 用哪个工具
+subject = 'chy'  # 用哪些示教数据
 dt = 0.01
 physicsClient = p.connect(p.GUI)#or p.DIRECT for non-graphical version
 p.setAdditionalSearchPath(pybullet_data.getDataPath()) #optionally
@@ -13,9 +16,6 @@ p.configureDebugVisualizer(p.COV_ENABLE_RENDERING, 0)  # 先不渲染
 p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
 p.setGravity(0,0,0)
 planeId = p.loadURDF("plane.urdf")
-name = 'fyl'
-arm = "arm_" + name
-tool = "bottle1"
 robot = ROBOT(arm, tool)
 kpt_ee = ROBOT.keypoint(robot, robot.ee_index)
 
@@ -25,21 +25,21 @@ p.configureDebugVisualizer(p.COV_ENABLE_GUI, 1)
 p.resetDebugVisualizerCamera(cameraDistance=1, cameraYaw=-135,
                                  cameraPitch=-36, cameraTargetPosition=[0.2,0,0.5])
 
+tool_class = tool[:-1]
+data_path = 'trajectories/mocap_csv/lfd/'+ tool_class +'/'
+base_bias = robot.base_bias  # 肩宽、肩厚、肩高补偿
+if subject == 'all':
+    files = get_all_file_paths(data_path)
+else:
+    files = get_all_file_paths(data_path + subject + '/')
 
-main_path = 'trajectories/mocap_csv/1015/'+ name +'/'
-tool_class = tool[:-1] + '/'
-base_bias = np.loadtxt(main_path + "base_bias.txt")  # 肩宽、肩厚、肩高补偿
-base_position = np.array(robot.startPos) + np.array(base_bias)
-file_path = main_path + tool_class
-files = os.listdir(file_path)
-# segment_file = np.loadtxt(main_path + tool_class + "segment.txt")
-
-file_index = 4
-file_name = file_path + files[file_index]
-# segment_index = int(segment_file[file_index])
+print(len(files))
+file_index = 3
+file_name = files[file_index]
+print(file_name)
 
 _, ts_base2eb, _, ts_base2wr, qs_base2ee, ts_base2ee, _, t_base2tg = get_transformed_trajectory(file_name, 
-                                                                                  base_position,
+                                                                                  base_bias,
                                                                                   cut_data=[0, -1],
                                                                                   orientation=True)
 
@@ -51,7 +51,6 @@ p.addUserDebugPoints(ts_base2eb, [([0, 0, 1]) for i in range(num_points)], 5)
 p.addUserDebugPoints(t_base2tg, [([0, 0, 0]) for i in range(num_points)], 5)
 time.sleep(1)
 interval = 2
-sample_len = num_points // interval + 1
 ts_base2eb, ts_base2wr, ts_base2ee, qs_base2ee = (down_sample(ts_base2eb, interval), down_sample(ts_base2wr, interval),
                                                   down_sample(ts_base2ee, interval), down_sample(qs_base2ee, interval))
 #############################################################################################

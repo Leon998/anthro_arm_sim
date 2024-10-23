@@ -8,7 +8,14 @@ import math
 
 q_a = np.array([0.462, 0.191, 0.462, 0.733])  # Auxillary quaternion
 
-def get_transformed_trajectory(file_name, base_position, cut_data=False, orientation=False, tg_based = False):
+def get_all_file_paths(directory):
+    file_paths = []
+    for root, dirs, files in os.walk(directory):
+        for file in files:
+            file_paths.append(os.path.join(root, file))
+    return file_paths
+
+def get_transformed_trajectory(file_name, base_bias, cut_data=False, orientation=False, tg_based = False):
     """
     Transform keypoints' trajectory into specified coordinate
 
@@ -21,10 +28,10 @@ def get_transformed_trajectory(file_name, base_position, cut_data=False, orienta
     T_w2ee = read_data(file_name, ee_cols, cut_data)
     T_w2tg = read_data(file_name, target_cols, cut_data)
     if not tg_based:
-        qs_base2eb, ts_base2eb = keypoint_transform(T_w2base, T_w2eb, base_position)
-        qs_base2wr, ts_base2wr = keypoint_transform(T_w2base, T_w2wr, base_position)
-        qs_base2ee, ts_base2ee = keypoint_transform(T_w2base, T_w2ee, base_position)
-        qs_base2tg, ts_base2tg = keypoint_transform(T_w2base, T_w2tg, base_position)
+        qs_base2eb, ts_base2eb = keypoint_transform(T_w2base, T_w2eb, base_bias)
+        qs_base2wr, ts_base2wr = keypoint_transform(T_w2base, T_w2wr, base_bias)
+        qs_base2ee, ts_base2ee = keypoint_transform(T_w2base, T_w2ee, base_bias)
+        qs_base2tg, ts_base2tg = keypoint_transform(T_w2base, T_w2tg, base_bias)
         if orientation:
             return qs_base2eb, ts_base2eb, qs_base2wr, ts_base2wr, qs_base2ee, ts_base2ee, qs_base2tg, ts_base2tg
         else:
@@ -67,7 +74,7 @@ def read_data(file_name, data_cols, cut_data=False):
         T_w2data = np.array(df_raw)
     return T_w2data
     
-def keypoint_transform(T_w2base, T_w2k, base_position):
+def keypoint_transform(T_w2base, T_w2k, base_bias):
     """
     Transform Tw2k into Tbase2k (in all time)
     """
@@ -91,7 +98,7 @@ def keypoint_transform(T_w2base, T_w2k, base_position):
         qs_base2k = np.concatenate((qs_base2k, q_base2k.reshape(1, 4)), axis=0)
         ts_base2k = np.concatenate((ts_base2k, t_base2k.reshape(1, 3)), axis=0)
     qs_base2k = qs_base2k[1:, :]
-    ts_base2k = ts_base2k[1:, :] + base_position
+    ts_base2k = ts_base2k[1:, :] + base_bias
     return qs_base2k, ts_base2k
 
 def coordinate_transform(q_w2k, t_w2k, q_w2base, t_w2base):

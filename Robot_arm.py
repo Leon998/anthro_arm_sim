@@ -7,7 +7,7 @@ from utils import *
 
 class ROBOT:
     def __init__(self, arm, tool, dof=7, 
-                 kpt_weight_opt=[10, 5, 10, 1],
+                 kpt_weight_opt=[10, 5, 10, 1],  # [eb, wr, ee, ee_ori]
                  kpt_weight_PDIK=[2, 1, 10, 1]):
         self.startPos = [0, 0, 1]
         self.startOrientation = p.getQuaternionFromEuler([0, 0, 0])
@@ -16,6 +16,7 @@ class ROBOT:
         self.name = arm+"_"+tool
         self.robot_id = p.loadURDF("models/"+arm+"/"+self.name+"/"+"/urdf/"+self.name+".urdf", 
                       self.startPos, self.startOrientation, useFixedBase=1)
+        self.base_bias = np.array(self.startPos) + np.array(np.loadtxt("models/"+arm+"/" + "base_bias.txt"))
         self.joints_indexes = [i for i in range(p.getNumJoints(self.robot_id)) if p.getJointInfo(self.robot_id, i)[2] != p.JOINT_FIXED]
         self.shoulder_index, self.elbow_index, self.wrist_index, self.ee_index = (self.joints_indexes[0], self.joints_indexes[2], 
                                                                                   self.joints_indexes[5], self.joints_indexes[6])

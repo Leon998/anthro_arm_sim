@@ -37,6 +37,9 @@ def GMR_sample(X_train, target_position):
     sampled_position = cgmm.to_mvn().mean
     return sampled_position
 
+arm = "arm_sx"  # 用哪个arm
+tool = "bottle1"  # 用哪个工具
+subject = 'sx'  # 用哪些示教数据
 
 physicsClient = p.connect(p.GUI)#or p.DIRECT for non-graphical version
 p.setAdditionalSearchPath(pybullet_data.getDataPath()) #optionally
@@ -44,7 +47,7 @@ p.configureDebugVisualizer(p.COV_ENABLE_RENDERING, 0)  # 先不渲染
 p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
 p.setGravity(0,0,0)
 planeId = p.loadURDF("plane.urdf")
-robot = ROBOT("arm_bottle1_demo")
+robot = ROBOT(arm, tool)
 kpt_ee = ROBOT.keypoint(robot, robot.ee_index)
 
 # Rendering
@@ -53,12 +56,16 @@ p.configureDebugVisualizer(p.COV_ENABLE_GUI, 1)
 p.resetDebugVisualizerCamera(cameraDistance=1, cameraYaw=-135,
                                  cameraPitch=-36, cameraTargetPosition=[0.2,0,0.5])
 
-base_position = np.array(robot.startPos) + np.array([-0.05, 0.1, -0.15])  # 肩宽、肩厚、肩高补偿
-main_path = 'trajectories/mocap_csv/710/bottle/'
-file_path = main_path + "source/"
-files = os.listdir(file_path)
-file_list = [i for i in range(0,54)]
-segment_file = np.loadtxt(main_path + "segment.txt")
+tool_class = tool[:-1]
+data_path = 'trajectories/mocap_csv/lfd/'+ tool_class +'/'
+base_bias = robot.base_bias  # 肩宽、肩厚、肩高补偿
+if subject == 'all':
+    files = get_all_file_paths(data_path)
+else:
+    files = get_all_file_paths(data_path + subject + '/')
+
+file_list = [i for i in range(0,len(files))]
+
 # point docker
 ts_tg2eb = np.empty((0, 3))
 ts_tg2wr = np.empty((0, 3))
@@ -67,29 +74,23 @@ logqs_tg2ee = np.empty((0, 3))
 ts_base2tg = np.empty((0, 3))
 qs_base2tg = np.empty((0, 4))
 
-test_index = 5  # 测试数据索引
+test_index = 4  # 测试数据索引
 # 提取所有示教数据在一时刻的关键点位置
 for file_index in file_list:
-    file_name = file_path + files[file_index]
-    segment_index = int(segment_file[file_index])
+    file_name = files[file_index]
     frames = [-2, -1]
     _, t_tg2eb, _, t_tg2wr, q_tg2ee, t_tg2ee, _, _ = get_transformed_trajectory(file_name, 
-                                                                                base_position,
+                                                                                base_bias,
                                                                                 cut_data=frames,
                                                                                 orientation=True,
                                                                                 tg_based=True)  # 机器人坐标系下的所有点坐标
     _, t_base2eb, _, t_base2wr, q_base2ee, t_base2ee, q_base2tg, t_base2tg = get_transformed_trajectory(file_name, 
-                                                                                                        base_position,
+                                                                                                        base_bias,
                                                                                                         cut_data=frames,
                                                                                                         orientation=True)  # target坐标系下的所有点坐标
-    if file_index < 27:
-        p.addUserDebugPoints(t_tg2ee, [[1, 0, 0]], 5)
-        p.addUserDebugPoints(t_tg2wr, [[0, 1, 0]], 5)
-        p.addUserDebugPoints(t_tg2eb, [[0, 0, 1]], 5)
-    else:
-        p.addUserDebugPoints(t_tg2ee, [[1, 0.5, 0.5]], 5)
-        p.addUserDebugPoints(t_tg2wr, [[0.5, 1, 0.5]], 5)
-        p.addUserDebugPoints(t_tg2eb, [[0.5, 0.5, 1]], 5)
+    p.addUserDebugPoints(t_tg2ee, [[1, 0, 0]], 5)
+    p.addUserDebugPoints(t_tg2wr, [[0, 1, 0]], 5)
+    p.addUserDebugPoints(t_tg2eb, [[0, 0, 1]], 5)
     # 先实现四元数到欧氏空间转换
     log_q = quaternion2euler(q_tg2ee.reshape(-1))
     ###############################
@@ -156,7 +157,7 @@ mu = GMR_sample(X_train, t_base2tg)
 print("Sampled subspace_mean: ", mu)
 
 
-# ### TODO Optimization in pca space ###
+# ### Optimization in pca space ###
 # Constrain
 cons_q_base2ee, cons_t_base2ee = rgbody_transform(q_base2tg, t_base2tg, cons_q_tg2ee, cons_t_tg2ee)
 print("target position in base:", t_base2tg)
