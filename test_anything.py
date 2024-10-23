@@ -28,10 +28,29 @@ from sklearn.decomposition import PCA
 # print(Z_sklearn)
 
 
-a = np.array([1, 2, 3])
-print(a.shape)
-l = []
-l = np.hstack((l, a))
-l = np.hstack((l, a))
-l = l.reshape((1, -1))
-print(l, l.shape)
+import itertools
+import time
+
+# # 创建一个循环模式，每10次切换一次
+# pattern = itertools.cycle([1] * 10 + [2] * 10)
+
+# for i in itertools.count():  # 无限次迭代
+#     current_pattern = next(pattern)  # 每次获取当前模式值
+#     time.sleep(0.1)
+#     if current_pattern == 1:
+#         # 每10次迭代执行的语句
+#         if i % 10 == 0:
+#             print(f"第 {i} 次迭代：执行语句 A")
+#     else:
+#         # 下一组10次迭代执行的语句
+#         if i % 10 == 0:
+#             print(f"第 {i} 次迭代：执行语句 B")
+
+
+for i in range(100):  # 假设我们有100次迭代
+    print((i // 10) % 7)
+    # if (i // 10) % 2 == 0:
+    #     output = 1
+    # else:
+    #     output = 2
+    # print(f"第 {i} 次迭代输出：{output}")

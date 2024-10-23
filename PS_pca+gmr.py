@@ -175,14 +175,6 @@ q_star = robot.subspace_opt_position(pca, kpt_list, cons_dict, ee_ori, q_init, q
 robot.FK(q_star)
 
 
-# # 直接逆变换到笛卡尔空间得到关键点位置，老方法。
-# sampled_goal = pca.inverse_transform(sampled_position.reshape(1, -1)).reshape(-1)
-# goal_tg2eb, goal_tg2wr = sampled_goal[:3], sampled_goal[3:]
-# print(goal_tg2eb, goal_tg2wr)
-
-
-
-
 while True:
     p.stepSimulation()
     time.sleep(1./240.)

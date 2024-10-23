@@ -50,10 +50,10 @@ def get_col_index(file_name):
     col_name_dict = {col_name_list[i]: i+2 for i in sorted_indices}
     target_cols = [i for i in range(col_name_dict['target'], col_name_dict['target']+7)]
     base_cols = [i for i in range(col_name_dict['base'], col_name_dict['base']+7)]
-    eb_cols = [i for i in range(col_name_dict['eb'], col_name_dict['eb']+7)]
-    wr_cols = [i for i in range(col_name_dict['wr'], col_name_dict['wr']+7)]
+    eb_cols = [i for i in range(col_name_dict['elbow'], col_name_dict['elbow']+7)]
+    wr_cols = [i for i in range(col_name_dict['wrist'], col_name_dict['wrist']+7)]
     for key in col_name_dict.keys():
-        if key not in ['target', 'base', 'eb', 'wr']:
+        if key not in ['target', 'base', 'elbow', 'wrist']:
             ee_key = key
             break
     ee_cols = [i for i in range(col_name_dict[ee_key], col_name_dict[ee_key]+7)]
