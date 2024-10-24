@@ -6,9 +6,9 @@ from utils import *
 from Robot_arm import ROBOT
 
 
-arm = "arm_chy"  # 用哪个arm
+arm = "arm_sx"  # 用哪个arm
 tool = "bottle1"  # 用哪个工具
-subject = 'chy'  # 用哪些示教数据
+subject = 'sx'  # 用哪些示教数据
 dt = 0.01
 physicsClient = p.connect(p.GUI)#or p.DIRECT for non-graphical version
 p.setAdditionalSearchPath(pybullet_data.getDataPath()) #optionally
@@ -34,7 +34,7 @@ else:
     files = get_all_file_paths(data_path + subject + '/')
 
 print(len(files))
-file_index = 3
+file_index = 4
 file_name = files[file_index]
 print(file_name)
 

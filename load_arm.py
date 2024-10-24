@@ -4,6 +4,7 @@ import pybullet_data
 from math import pi
 from Robot_arm import ROBOT
 
+
 # 连接物理引擎
 physicsCilent = p.connect(p.GUI)
 
@@ -21,7 +22,7 @@ p.setGravity(0, 0, 0)
 # planeId = p.loadURDF("plane.urdf")
 
 # 加载机器人，并设置加载的机器人的位姿
-arm = "arm_sx"
+arm = "arm_robot"
 tool = "bottle1"
 robot = ROBOT(arm, tool)
 kpt_ee = ROBOT.keypoint(robot, robot.ee_index)
@@ -38,18 +39,19 @@ p.resetDebugVisualizerCamera(cameraDistance=1, cameraYaw=-135,
                                  cameraPitch=-36, cameraTargetPosition=[0.2,0,0.5])
 
 q = 0
-joint_idx = 0
+joint_idx = 5
+test_q = pi/ 2
 while True:
     p.stepSimulation()
     q += 0.005
-    ## joint test:
-    # p.resetJointState(bodyUniqueId=robot.robot_id,
-    #                   jointIndex=joint_idx,
-    #                   targetValue=q,
-    #                   targetVelocity=0)
+    # joint test:
+    p.resetJointState(bodyUniqueId=robot.robot_id,
+                      jointIndex=joint_idx,
+                      targetValue=test_q,
+                      targetVelocity=0)
 
     ## keypoint tracking:
-    p.resetBasePositionAndOrientation(robot.robot_id, [-q/5, -q/5, 1], [0, 0, 0, 1])
+    # p.resetBasePositionAndOrientation(robot.robot_id, [-q/5, -q/5, 1], [0, 0, 0, 1])
     kpt_ee.draw_traj()
     kpt_wrist.draw_traj()
     kpt_elbow.draw_traj()

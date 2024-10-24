@@ -27,8 +27,24 @@ from sklearn.decomposition import PCA
 # print("scikit-learn 计算的 Z:")
 # print(Z_sklearn)
 
+from math import pi
 
-a = [1, 2, 3]
-b = [4, 5, 6]
-c = a + b
-print(c)
+bounds = ([-pi, pi/2], [0, pi], [-pi/2, pi/2], [0, pi], [-pi/2, pi/2], [-pi/4, pi/4], [-pi/2, pi/2])
+with open('bounds.txt', 'w') as f:
+    for bound in bounds:
+        f.write(f"{bound[0]},{bound[1]}\n")  # 将每个边界对写入文件
+
+# 从 txt 文件中读取 bounds
+bounds_from_file = []
+
+with open('bounds.txt', 'r') as f:
+    for line in f:
+        lower, upper = line.strip().split(',')  # 按逗号分隔每一行
+        # 处理 None 值
+        lower = float(lower) if lower != 'None' else None
+        upper = float(upper) if upper != 'None' else None
+        bounds_from_file.append((lower, upper))
+
+
+# 打印从文件中读取的 bounds
+print(bounds_from_file)

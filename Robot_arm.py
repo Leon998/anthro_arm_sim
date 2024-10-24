@@ -3,6 +3,7 @@ import numpy as np
 from scipy.optimize import minimize
 from scipy.spatial.transform import Rotation as R
 from utils import *
+from math import pi
 
 
 class ROBOT:
@@ -31,6 +32,14 @@ class ROBOT:
         self.q_23 = np.array(self.q_init[4:])
         self.kpt_weight_opt = kpt_weight_opt
         self.kpt_weight_PDIK = kpt_weight_PDIK
+        self.bound = []
+        with open("models/"+arm+"/"+'bounds.txt', 'r') as f:
+            for line in f:
+                lower, upper = line.strip().split(',')  # 按逗号分隔每一行
+                # 处理 None 值
+                lower = float(lower) if lower != 'None' else None
+                upper = float(upper) if upper != 'None' else None
+                self.bound.append((lower, upper))
 
     def get_joints_states(self):
         joint_states = p.getJointStates(self.robot_id, range(p.getNumJoints(self.robot_id)))
@@ -194,6 +203,7 @@ class ROBOT:
         q_star = np.array(q_star.x)
         return q_star
     
+
     def subspace_opt_position(self, pca, kpt_list, cons_dict, ee_ori, q_init, q_base2tg, t_base2tg, mu):
         """
         假设ee方向为确定约束，仅针对关键点位置进行子空间优化
@@ -203,7 +213,7 @@ class ROBOT:
         pca : pca model
         kpt_list : a list containing the index of kpts (e.g. [robot.elbow_index, robot.wrist_index])（PCA梯度×机器人雅可比）
         cons_dict : a dict containing explicit constrains ({index: cons_t_base2k})
-        ee_ori : 末端朝向（也要求梯度）
+        ee_ori : 末端朝向
         q_base2tg, t_base2tg : 目标点位在机器人坐标系下的位姿
 
         Returns
@@ -211,6 +221,7 @@ class ROBOT:
 
         """
         q_init = q_init  # 长度为n×m（目标数×关节自由度数）
+        bounds = self.bound
         def func(q):
             self.FK(q)
             x = []  # keypoint positions
@@ -224,6 +235,7 @@ class ROBOT:
             z = pca.transform(x)
             E = np.dot(z - mu, (z - mu).T)  # subspace error
             return E
+        
         def func_jac(q):
             self.FK(q)
             x = []  # keypoint positions
@@ -242,20 +254,42 @@ class ROBOT:
             z = pca.transform(x)  # shape (1, 3)
             jac = 2*(z - mu) @ pca.components_ @ J_kpt  # (1, 3), (3, 6), (6, 7)
             return jac
+        
         def cons_position(q):
             self.FK(q)
             index = list(cons_dict.keys())[0]
             mu_cons = cons_dict[index]  # 约束均值（笛卡尔空间）
             e = self.get_error(mu_cons, index)
             return - np.dot(e.T, e) + 0.000225
+        
+        def cons_position_jac(q):
+            self.FK(q)
+            index = list(cons_dict.keys())[0]
+            mu_cons = cons_dict[index]  # 约束均值（笛卡尔空间）
+            e = self.get_error(mu_cons, index)
+            J_v, _ = self.get_jacobian(index)
+            jac = 2 * e @ J_v
+            return jac
+        
         def cons_orientation(q):
             self.FK(q)
             index = self.ee_index
             e = self.get_ee_ori_error(ee_ori, index)
             return - np.dot(e.T, e) + 0.015
-        cons = [{'type': 'ineq', 'fun': cons_position}, 
-                {'type': 'ineq', 'fun': cons_orientation}]
-        q_star = minimize(func, q_init, method='SLSQP', jac=func_jac, constraints=cons)
+        
+        def cons_orientation_jac(q):
+            self.FK(q)
+            index = self.ee_index
+            e = self.get_ee_ori_error(ee_ori, index)
+            _, J_w = self.get_jacobian(index)
+            jac = 2 * e @ J_w
+            return jac
+        
+        cons = [{'type': 'ineq', 
+                 'fun': cons_position}, 
+                {'type': 'ineq', 
+                 'fun': cons_orientation}]
+        q_star = minimize(func, q_init, method='SLSQP', jac=func_jac, constraints=cons, bounds=bounds)
         Error = q_star.fun
         q_star = np.array(q_star.x)
         return q_star

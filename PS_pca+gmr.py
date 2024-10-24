@@ -37,8 +37,8 @@ def GMR_sample(X_train, target_position):
     sampled_position = cgmm.to_mvn().mean
     return sampled_position
 
-arm = "arm_sx"  # 用哪个arm
-tool = "bottle1"  # 用哪个工具
+arm = "arm_robot"  # 用哪个arm
+tool = "pry1"  # 用哪个工具
 subject = 'sx'  # 用哪些示教数据
 
 physicsClient = p.connect(p.GUI)#or p.DIRECT for non-graphical version
@@ -56,6 +56,7 @@ p.configureDebugVisualizer(p.COV_ENABLE_GUI, 1)
 p.resetDebugVisualizerCamera(cameraDistance=1, cameraYaw=-135,
                                  cameraPitch=-36, cameraTargetPosition=[0.2,0,0.5])
 
+#################################### Loading lfd data ########################################
 tool_class = tool[:-1]
 data_path = 'trajectories/mocap_csv/lfd/'+ tool_class +'/'
 base_bias = robot.base_bias  # 肩宽、肩厚、肩高补偿
@@ -63,8 +64,13 @@ if subject == 'all':
     files = get_all_file_paths(data_path)
 else:
     files = get_all_file_paths(data_path + subject + '/')
+frames = [-2, -1]
 
-file_list = [i for i in range(0,len(files))]
+# ========================================================================================== #
+######################################## Training ############################################
+# ========================================================================================== #
+train_list = [i for i in range(0, len(files), 2)]
+print(train_list)
 
 # point docker
 ts_tg2eb = np.empty((0, 3))
@@ -74,37 +80,31 @@ logqs_tg2ee = np.empty((0, 3))
 ts_base2tg = np.empty((0, 3))
 qs_base2tg = np.empty((0, 4))
 
-test_index = 4  # 测试数据索引
 # 提取所有示教数据在一时刻的关键点位置
-for file_index in file_list:
+for file_index in train_list:
     file_name = files[file_index]
-    frames = [-2, -1]
     _, t_tg2eb, _, t_tg2wr, q_tg2ee, t_tg2ee, _, _ = get_transformed_trajectory(file_name, 
                                                                                 base_bias,
                                                                                 cut_data=frames,
                                                                                 orientation=True,
-                                                                                tg_based=True)  # 机器人坐标系下的所有点坐标
+                                                                                tg_based=True)  # target坐标系下的所有点坐标
     _, t_base2eb, _, t_base2wr, q_base2ee, t_base2ee, q_base2tg, t_base2tg = get_transformed_trajectory(file_name, 
                                                                                                         base_bias,
                                                                                                         cut_data=frames,
-                                                                                                        orientation=True)  # target坐标系下的所有点坐标
+                                                                                                        orientation=True)  # 机器人坐标系下的所有点坐标
     p.addUserDebugPoints(t_tg2ee, [[1, 0, 0]], 5)
     p.addUserDebugPoints(t_tg2wr, [[0, 1, 0]], 5)
     p.addUserDebugPoints(t_tg2eb, [[0, 0, 1]], 5)
     # 先实现四元数到欧氏空间转换
     log_q = quaternion2euler(q_tg2ee.reshape(-1))
-    ###############################
     ts_tg2eb = np.vstack((ts_tg2eb, t_tg2eb))
     ts_tg2wr = np.vstack((ts_tg2wr, t_tg2wr))
     ts_tg2ee = np.vstack((ts_tg2ee, t_tg2ee))
     logqs_tg2ee = np.vstack((logqs_tg2ee, log_q))
     ts_base2tg = np.vstack((ts_base2tg, t_base2tg))
     qs_base2tg = np.vstack((qs_base2tg, q_base2tg))
-    if file_index == test_index:
-        q_base2ee_test = q_base2ee.reshape(-1)
-        t_base2ee_test = t_base2ee.reshape(-1)
 
-####################################### PCA ######################################################
+############### PCA ###################
 # 需要先对所有关键点做PCA，方差小于某个阈值，那么说明是强约束，否则拿去做GMM
 pca_eb = decomposition.PCA(n_components=3)
 pca_wr = decomposition.PCA(n_components=3)
@@ -120,7 +120,7 @@ print("EE's explained variance: ", pca_ee.explained_variance_)
 pca_logq_ee.fit(logqs_tg2ee)
 print("EE orientation's explained variance: ", pca_logq_ee.explained_variance_)
 
-####################### Constrain Learning #########################
+########## Constrain Learning ###########
 # 经PCA后发现，EE为p2p约束，EE orientation在转换到欧氏空间后为p2l约束，因此可以直接采样出约束点
 # 现直接定义约束
 cons_t_tg2ee = pca_ee.mean_
@@ -146,34 +146,50 @@ print("P:", pca.components_, pca.components_.shape)
 # ax.scatter(X[27:, 0], X[27:, 1], X[27:, 2], c='b')
 # plt.show()
 
-################################################### GMM + Opt ###########################################
 # 对降维后的子空间做GMM+GMR
 X_train = np.hstack((X, ts_base2tg))
 print("GMR train set shape: ", X_train.shape)
-# 根据测试时的目标位置，从GMR中采样出子空间的均值
-t_base2tg = ts_base2tg[test_index]
-q_base2tg = qs_base2tg[test_index]
-mu = GMR_sample(X_train, t_base2tg)
-print("Sampled subspace_mean: ", mu)
 
+
+# ============================================================================================= #
+########################################## Testing ##############################################
+# ============================================================================================= #
+# 读取测试数据
+test_index = 5  # 测试文件索引
+test_file = files[test_index]
+_, t_base2eb_test, _, t_base2wr_test, q_base2ee_test, t_base2ee_test, q_base2tg_test, t_base2tg_test = get_transformed_trajectory(test_file, 
+                                                                                                    base_bias,
+                                                                                                    cut_data=frames,
+                                                                                                    orientation=True)  # target坐标系下的所有点坐标
+
+# 根据测试时的目标位置，从GMR中采样出子空间的均值
+mu = GMR_sample(X_train, t_base2tg_test)
+print("Sampled subspace_mean: ", mu)
+# 测试数据的目标位置，先转换成0行的数组
+q_base2tg_test = q_base2tg_test.reshape(-1)
+t_base2tg_test = t_base2tg_test.reshape(-1)
+# 测试数据的真实关键点位置，先转换成0行的数组
+q_base2ee_test = q_base2ee_test.reshape(-1)
+t_base2ee_test = t_base2ee_test.reshape(-1)
 
 # ### Optimization in pca space ###
 # Constrain
-cons_q_base2ee, cons_t_base2ee = rgbody_transform(q_base2tg, t_base2tg, cons_q_tg2ee, cons_t_tg2ee)
-print("target position in base:", t_base2tg)
+cons_q_base2ee, cons_t_base2ee = rgbody_transform(q_base2tg_test, t_base2tg_test, cons_q_tg2ee, cons_t_tg2ee)
+print("target position in base:", t_base2tg_test)
 print("Real ee constrains in base: ", q_base2ee_test, t_base2ee_test)
 print("Learned ee constrains in base: ", cons_q_base2ee, cons_t_base2ee)
-p.addUserDebugPoints([t_base2tg], [[0, 0, 0]], 5)
-p.addUserDebugPoints([t_base2ee_test], [[0, 1, 0]], 5)  # 真实末端位置
-p.addUserDebugPoints([cons_t_base2ee], [[1, 1, 1]], 5)  # 学到的末端约束位置
+p.addUserDebugPoints([t_base2tg_test], [[0, 0, 0]], 5)  # 目标位置（黑）
+p.addUserDebugPoints([t_base2ee_test], [[0, 1, 0]], 5)  # 真实末端位置（绿）
+p.addUserDebugPoints([cons_t_base2ee], [[1, 1, 1]], 5)  # 学到的末端约束位置（白）
 
 
 kpt_list = [robot.elbow_index, robot.wrist_index]
-cons_dict = {robot.ee_index:t_base2ee_test}
-ee_ori = q_base2ee_test
+cons_dict = {robot.ee_index:cons_t_base2ee}
+ee_ori = cons_q_base2ee
 q_init = [0. for i in range(robot.dof)]
-q_star = robot.subspace_opt_position(pca, kpt_list, cons_dict, ee_ori, q_init, q_base2tg, t_base2tg, mu)
+q_star = robot.subspace_opt_position(pca, kpt_list, cons_dict, ee_ori, q_init, q_base2tg_test, t_base2tg_test, mu)
 robot.FK(q_star)
+print(q_star)
 
 
 while True:
