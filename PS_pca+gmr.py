@@ -16,12 +16,12 @@ def GMR_sample(X_train, target_position):
     """
     Parameters
     ----------
-    X_train : array-like of shape (n_samples, 6) (6 = 3 for pca dim + 3 for target_positions)
+    X_train : array-like of shape (n_samples, n_features + 3) (3 for target_positions)
     target_position : conditioned target position, shape (1, 3)
 
     Returns
     ----------
-    sampled_position : mean value of GMM under the conditioned target_position, shape (1, 3)
+    sampled_position : mean value of GMM under the conditioned target_position, shape (1, n_features)
     """
     # GMR
     random_state = np.random.RandomState(0)
@@ -37,9 +37,11 @@ def GMR_sample(X_train, target_position):
     sampled_position = cgmm.to_mvn().mean
     return sampled_position
 
+PCA = True
+
 arm = "arm_robot"  # 用哪个arm
-tool = "pry1"  # 用哪个工具
-subject = 'sx'  # 用哪些示教数据
+tool = "pry2"  # 用哪个工具
+subject = 'all'  # 用哪些示教数据
 
 physicsClient = p.connect(p.GUI)#or p.DIRECT for non-graphical version
 p.setAdditionalSearchPath(pybullet_data.getDataPath()) #optionally
@@ -64,12 +66,13 @@ if subject == 'all':
     files = get_all_file_paths(data_path)
 else:
     files = get_all_file_paths(data_path + subject + '/')
-frames = [-2, -1]
+frames = [0, 1]
 
 # ========================================================================================== #
 ######################################## Training ############################################
 # ========================================================================================== #
 train_list = [i for i in range(0, len(files), 2)]
+# train_list = [3, 4, 5, 6, 7, 8, 12 ,13, 14, 15, 16, 17]
 print(train_list)
 
 # point docker
@@ -129,25 +132,29 @@ print("Constrains in tg: ", cons_q_tg2ee, cons_t_tg2ee)
 
 # 然后对隐式约束进行联合PCA：PCA on eb and wr，定义为IC（implicit constrain，隐式约束）
 ts_tg2IC = np.hstack((ts_tg2eb, ts_tg2wr))
-print("Original goal shape: ", ts_tg2IC.shape)
-pca = decomposition.PCA(n_components=3)
-pca.fit(ts_tg2IC)
-X = pca.transform(ts_tg2IC)
-print("Transformed component shape: ", X.shape)
-print("Explained variance: ", pca.explained_variance_)
-print("P:", pca.components_, pca.components_.shape)
-# print("Explained variance ratio: ", pca.explained_variance_ratio_)
+if PCA:
+    print("Original goal shape: ", ts_tg2IC.shape)
+    pca = decomposition.PCA(n_components=3)
+    pca.fit(ts_tg2IC)
+    X = pca.transform(ts_tg2IC)
+    print("Transformed component shape: ", X.shape)
+    print("Explained variance: ", pca.explained_variance_)
+    print("P:", pca.components_, pca.components_.shape)
+    # print("Explained variance ratio: ", pca.explained_variance_ratio_)
 
-# # visualizing manifold
-# fig = plt.figure(1, figsize=(4, 3))
-# ax = fig.add_subplot(111, projection="3d", elev=48, azim=134)
-# X = ts_tg2IC
-# ax.scatter(X[:27, 0], X[:27, 1], X[:27, 2], c='g')
-# ax.scatter(X[27:, 0], X[27:, 1], X[27:, 2], c='b')
-# plt.show()
+    # # visualizing manifold
+    # fig = plt.figure(1, figsize=(4, 3))
+    # ax = fig.add_subplot(111, projection="3d", elev=48, azim=134)
+    # X = ts_tg2IC
+    # ax.scatter(X[:27, 0], X[:27, 1], X[:27, 2], c='g')
+    # ax.scatter(X[27:, 0], X[27:, 1], X[27:, 2], c='b')
+    # plt.show()
 
-# 对降维后的子空间做GMM+GMR
-X_train = np.hstack((X, ts_base2tg))
+    # 对降维后的子空间做GMM+GMR
+    X_train = np.hstack((X, ts_base2tg))
+else:
+    X_train = np.hstack((ts_tg2IC, ts_base2tg))
+
 print("GMR train set shape: ", X_train.shape)
 
 
@@ -155,7 +162,7 @@ print("GMR train set shape: ", X_train.shape)
 ########################################## Testing ##############################################
 # ============================================================================================= #
 # 读取测试数据
-test_index = 5  # 测试文件索引
+test_index = 17  # 测试文件索引
 test_file = files[test_index]
 _, t_base2eb_test, _, t_base2wr_test, q_base2ee_test, t_base2ee_test, q_base2tg_test, t_base2tg_test = get_transformed_trajectory(test_file, 
                                                                                                     base_bias,
@@ -164,7 +171,7 @@ _, t_base2eb_test, _, t_base2wr_test, q_base2ee_test, t_base2ee_test, q_base2tg_
 
 # 根据测试时的目标位置，从GMR中采样出子空间的均值
 mu = GMR_sample(X_train, t_base2tg_test)
-print("Sampled subspace_mean: ", mu)
+print("Sampled mean: ", mu)
 # 测试数据的目标位置，先转换成0行的数组
 q_base2tg_test = q_base2tg_test.reshape(-1)
 t_base2tg_test = t_base2tg_test.reshape(-1)
@@ -172,7 +179,7 @@ t_base2tg_test = t_base2tg_test.reshape(-1)
 q_base2ee_test = q_base2ee_test.reshape(-1)
 t_base2ee_test = t_base2ee_test.reshape(-1)
 
-# ### Optimization in pca space ###
+######## Optimization in pca space #######
 # Constrain
 cons_q_base2ee, cons_t_base2ee = rgbody_transform(q_base2tg_test, t_base2tg_test, cons_q_tg2ee, cons_t_tg2ee)
 print("target position in base:", t_base2tg_test)
@@ -187,7 +194,10 @@ kpt_list = [robot.elbow_index, robot.wrist_index]
 cons_dict = {robot.ee_index:cons_t_base2ee}
 ee_ori = cons_q_base2ee
 q_init = [0. for i in range(robot.dof)]
-q_star = robot.subspace_opt_position(pca, kpt_list, cons_dict, ee_ori, q_init, q_base2tg_test, t_base2tg_test, mu)
+if PCA:
+    q_star = robot.feature_space_opt_position(pca, kpt_list, cons_dict, ee_ori, q_init, q_base2tg_test, t_base2tg_test, mu)
+else:
+    q_star = robot.cartesian_space_opt_position(kpt_list, cons_dict, ee_ori, q_init, q_base2tg_test, t_base2tg_test, mu)
 robot.FK(q_star)
 print(q_star)
 

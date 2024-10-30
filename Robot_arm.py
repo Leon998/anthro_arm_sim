@@ -14,7 +14,7 @@ class ROBOT:
         self.startOrientation = p.getQuaternionFromEuler([0, 0, 0])
         self.dof = dof
         self.init_joint_angles = [0. for i in range(self.dof)]
-        self.name = arm+"_"+tool
+        self.name = arm+"_"+tool if tool else arm
         self.robot_id = p.loadURDF("models/"+arm+"/"+self.name+"/"+"/urdf/"+self.name+".urdf", 
                       self.startPos, self.startOrientation, useFixedBase=1)
         self.base_bias = np.array(self.startPos) + np.array(np.loadtxt("models/"+arm+"/" + "base_bias.txt"))
@@ -204,7 +204,7 @@ class ROBOT:
         return q_star
     
 
-    def subspace_opt_position(self, pca, kpt_list, cons_dict, ee_ori, q_init, q_base2tg, t_base2tg, mu):
+    def feature_space_opt_position(self, pca, kpt_list, cons_dict, ee_ori, q_init, q_base2tg, t_base2tg, mu):
         """
         假设ee方向为确定约束，仅针对关键点位置进行子空间优化
 
@@ -253,6 +253,93 @@ class ROBOT:
             x = x.reshape((1, -1))
             z = pca.transform(x)  # shape (1, 3)
             jac = 2*(z - mu) @ pca.components_ @ J_kpt  # (1, 3), (3, 6), (6, 7)
+            return jac
+        
+        def cons_position(q):
+            self.FK(q)
+            index = list(cons_dict.keys())[0]
+            mu_cons = cons_dict[index]  # 约束均值（笛卡尔空间）
+            e = self.get_error(mu_cons, index)
+            return - np.dot(e.T, e) + 0.000225
+        
+        def cons_position_jac(q):
+            self.FK(q)
+            index = list(cons_dict.keys())[0]
+            mu_cons = cons_dict[index]  # 约束均值（笛卡尔空间）
+            e = self.get_error(mu_cons, index)
+            J_v, _ = self.get_jacobian(index)
+            jac = 2 * e @ J_v
+            return jac
+        
+        def cons_orientation(q):
+            self.FK(q)
+            index = self.ee_index
+            e = self.get_ee_ori_error(ee_ori, index)
+            return - np.dot(e.T, e) + 0.015
+        
+        def cons_orientation_jac(q):
+            self.FK(q)
+            index = self.ee_index
+            e = self.get_ee_ori_error(ee_ori, index)
+            _, J_w = self.get_jacobian(index)
+            jac = 2 * e @ J_w
+            return jac
+        
+        cons = [{'type': 'ineq', 
+                 'fun': cons_position}, 
+                {'type': 'ineq', 
+                 'fun': cons_orientation}]
+        q_star = minimize(func, q_init, method='SLSQP', jac=func_jac, constraints=cons, bounds=bounds)
+        Error = q_star.fun
+        q_star = np.array(q_star.x)
+        return q_star
+    
+    def cartesian_space_opt_position(self, kpt_list, cons_dict, ee_ori, q_init, q_base2tg, t_base2tg, mu):
+        """
+        假设ee方向为确定约束，仅针对关键点位置进行子空间优化
+
+        Parameters
+        ----------
+        kpt_list : a list containing the index of kpts (e.g. [robot.elbow_index, robot.wrist_index])（PCA梯度×机器人雅可比）
+        cons_dict : a dict containing explicit constrains ({index: cons_t_base2k})
+        ee_ori : 末端朝向
+        q_base2tg, t_base2tg : 目标点位在机器人坐标系下的位姿
+
+        Returns
+        ----------
+
+        """
+        q_init = q_init  # 长度为n×m（目标数×关节自由度数）
+        bounds = self.bound
+        def func(q):
+            self.FK(q)
+            x = []  # keypoint positions
+            for index in kpt_list:
+                t_base2k = p.getLinkState(self.robot_id, index)[0]
+                q_base2k = np.array([0, 0, 0, 1])  # 不关心关键点的朝向
+                # 这里需要先把笛卡尔坐标转换到target坐标下
+                _, t_tg2k, _ = coordinate_transform(q_base2k, t_base2k, q_base2tg, t_base2tg)
+                x = np.hstack((x, t_tg2k))
+            x = x.reshape((1, -1))
+            E = np.dot(x - mu, (x - mu).T)  # subspace error
+            return E
+        
+        def func_jac(q):
+            self.FK(q)
+            x = []  # keypoint positions
+            J_kpt = np.empty((0, 7))  # keypoint jacobians
+            for index in kpt_list:
+                ### 关键点位置x
+                t_base2k = p.getLinkState(self.robot_id, index)[0]
+                q_base2k = np.array([0, 0, 0, 1])  # 不关心关键点的朝向
+                # 这里需要先把笛卡尔坐标转换到target坐标下
+                _, t_tg2k, _ = coordinate_transform(q_base2k, t_base2k, q_base2tg, t_base2tg)
+                x = np.hstack((x, t_tg2k))
+                ### 雅可比矩阵
+                J_v, _ = self.get_jacobian(index)
+                J_kpt = np.vstack((J_kpt, J_v))
+            x = x.reshape((1, -1))
+            jac = 2*(x - mu) @ J_kpt  # (1, 3), (3, 6), (6, 7)
             return jac
         
         def cons_position(q):

@@ -1,50 +1,56 @@
 import numpy as np
-from sklearn.decomposition import PCA
+import matplotlib.pyplot as plt
+from sklearn.mixture import GaussianMixture
 
-# # 原始数据矩阵 X，形状为 (n_samples, n_features)
-# X = np.array([[2.5, 0.5], [0.5, 1.5], [2.2, 1.9], [1.9, 0.8]])
-# print(X.shape)
-# # 执行 PCA，降维到 1 维
-# pca = PCA(n_components=1)
-# pca.fit(X)
+# 设置随机种子
+np.random.seed(0)
 
-# # 获取主成分矩阵 W
-# W = pca.components_
-# print(W.shape)
-# # 手动中心化原始数据
-# X_centered = X - np.mean(X, axis=0)
+# 生成数据，假设有三个高斯分布中心，彼此较近
+n_samples = 50
+mean1 = [11, 8]
+cov1 = [[1, 0.5], [0.5, 1]]
 
-# # 手动进行数据投影 (等价于 pca.transform(X))
-# Z_manual = np.dot(X_centered, W.T)
+mean2 = [13, 12]
+cov2 = [[1, -0.1], [-0.1, 1]]
 
-# # 使用 scikit-learn 的 transform 方法
-# Z_sklearn = pca.transform(X)
+mean3 = [16, 10]
+cov3 = [[1, -0.5], [-0.5, 1]]
 
-# # 输出手动计算结果与 sklearn 计算结果
-# print("手动计算的 Z:")
-# print(Z_manual)
+# 从三个不同的高斯分布中生成样本
+data1 = np.random.multivariate_normal(mean1, cov1, n_samples)
+data2 = np.random.multivariate_normal(mean2, cov2, n_samples)
+data3 = np.random.multivariate_normal(mean3, cov3, n_samples)
+data = np.vstack([data1, data2, data3])
 
-# print("scikit-learn 计算的 Z:")
-# print(Z_sklearn)
+# 拟合高斯混合模型
+gmm = GaussianMixture(n_components=3, covariance_type='full')
+gmm.fit(data)
+labels = gmm.predict(data)
 
-from math import pi
+# 绘制数据点和拟合的高斯混合模型
+plt.figure(figsize=(10, 6))
+plt.scatter(data[:, 0], data[:, 1], c='black', s=10, label='Data Points')  # 所有数据点都为黑色
+plt.title("2D Gaussian Mixture Model with Three Adjacent Distributions")
+plt.xlabel("Target position")
+plt.ylabel("Feature")
 
-bounds = ([-pi, pi/2], [0, pi], [-pi/2, pi/2], [0, pi], [-pi/2, pi/2], [-pi/4, pi/4], [-pi/2, pi/2])
-with open('bounds.txt', 'w') as f:
-    for bound in bounds:
-        f.write(f"{bound[0]},{bound[1]}\n")  # 将每个边界对写入文件
+# 绘制GMM的椭圆轮廓
+def plot_gmm_ellipse(gmm, ax, colors=['red', 'green', 'blue']):
+    for i, (pos, covar) in enumerate(zip(gmm.means_, gmm.covariances_)):
+        eigenvalues, eigenvectors = np.linalg.eigh(covar)
+        angle = np.arctan2(eigenvectors[0, 1], eigenvectors[0, 0])
+        angle = np.degrees(angle)
+        width, height = 2 * np.sqrt(eigenvalues)  # 2 std devs
+        ellip = plt.matplotlib.patches.Ellipse(
+            pos, 2*width, 2*height, angle=angle, color=colors[i], alpha=0.3
+        )
+        ax.add_patch(ellip)
 
-# 从 txt 文件中读取 bounds
-bounds_from_file = []
+plot_gmm_ellipse(gmm, plt.gca())
 
-with open('bounds.txt', 'r') as f:
-    for line in f:
-        lower, upper = line.strip().split(',')  # 按逗号分隔每一行
-        # 处理 None 值
-        lower = float(lower) if lower != 'None' else None
-        upper = float(upper) if upper != 'None' else None
-        bounds_from_file.append((lower, upper))
+# 隐藏x和y轴的坐标值
+plt.gca().set_xticks([])
+plt.gca().set_yticks([])
 
-
-# 打印从文件中读取的 bounds
-print(bounds_from_file)
+# plt.legend()
+plt.show()
