@@ -72,7 +72,7 @@ frames = [0, 1]
 # ========================================================================================== #
 
 # ================= Config ========================== #
-train_list = [i for i in range(0, len(files))]
+train_list = [i for i in range(0, len(files), 2)]
 # train_list = [4, 5, 7, 8, 13, 14, 16, 17]
 print(train_list)
 test_index = 15  # 测试文件索引
@@ -229,7 +229,12 @@ q_init = [0. for i in range(robot.dof)]
 if PCA:
     q_star = robot.feature_space_opt_position(pca, kpt_list, cons_dict, ee_ori, q_init, q_base2tg_test, t_base2tg_test, mu)
 else:
-    q_star = robot.cartesian_space_opt_position(kpt_list, cons_dict, ee_ori, q_init, q_base2tg_test, t_base2tg_test, mu)
+    # q_star = robot.cartesian_space_opt_position(kpt_list, cons_dict, ee_ori, q_init, q_base2tg_test, t_base2tg_test, mu)
+    q_star = robot.step_kpt_opt(x_eb=t_base2eb.reshape(-1), 
+                                x_wr=t_base2wr.reshape(-1), 
+                                x_ee=cons_t_base2ee, 
+                                q_ee=cons_q_base2ee, 
+                                q_init=[0. for i in range(robot.dof)])
 robot.FK(q_star)
 print(q_star)
 
