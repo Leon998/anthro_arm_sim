@@ -25,7 +25,7 @@ def GMR_sample(X_train, target_position):
     """
     # GMR
     random_state = np.random.RandomState(0)
-    n_components = 5
+    n_components = 4
     initial_means = kmeansplusplus_initialization(X_train, n_components, random_state)
     initial_covs = covariance_initialization(X_train, n_components)
     bgmm = BayesianGaussianMixture(
@@ -37,11 +37,10 @@ def GMR_sample(X_train, target_position):
     sampled_position = cgmm.to_mvn().mean
     return sampled_position
 
-PCA = True
 
-arm = "arm_robot"  # 用哪个arm
-tool = "pry2"  # 用哪个工具
-subject = 'all'  # 用哪些示教数据
+arm = "arm_sx"  # 用哪个arm
+tool = "bottle2"  # 用哪个工具
+train_subject = 'sx'  # 用哪些示教数据
 
 physicsClient = p.connect(p.GUI)#or p.DIRECT for non-graphical version
 p.setAdditionalSearchPath(pybullet_data.getDataPath()) #optionally
@@ -54,7 +53,7 @@ kpt_ee = ROBOT.keypoint(robot, robot.ee_index)
 
 # Rendering
 p.configureDebugVisualizer(p.COV_ENABLE_RENDERING, 1)
-p.configureDebugVisualizer(p.COV_ENABLE_GUI, 1)
+# p.configureDebugVisualizer(p.COV_ENABLE_GUI, 1)
 p.resetDebugVisualizerCamera(cameraDistance=1, cameraYaw=-135,
                                  cameraPitch=-36, cameraTargetPosition=[0.2,0,0.5])
 
@@ -62,18 +61,23 @@ p.resetDebugVisualizerCamera(cameraDistance=1, cameraYaw=-135,
 tool_class = tool[:-1]
 data_path = 'trajectories/mocap_csv/lfd/'+ tool_class +'/'
 base_bias = robot.base_bias  # 肩宽、肩厚、肩高补偿
-if subject == 'all':
+if train_subject == 'all':
     files = get_all_file_paths(data_path)
 else:
-    files = get_all_file_paths(data_path + subject + '/')
-frames = [0, 1]
+    files = get_all_file_paths(data_path + train_subject + '/')
+frames = [-2, -1]
 
 # ========================================================================================== #
 ######################################## Training ############################################
 # ========================================================================================== #
-train_list = [i for i in range(0, len(files), 2)]
-# train_list = [3, 4, 5, 6, 7, 8, 12 ,13, 14, 15, 16, 17]
+
+# ================= Config ========================== #
+train_list = [i for i in range(1, len(files), 2)]
+# train_list = [6, 7, 8, 15, 16, 17, 24, 25, 26]
 print(train_list)
+test_index = 10  # 测试文件索引
+PCA = False
+# =================================================== #
 
 # point docker
 ts_tg2eb = np.empty((0, 3))
@@ -125,10 +129,9 @@ print("EE orientation's explained variance: ", pca_logq_ee.explained_variance_)
 
 ########## Constrain Learning ###########
 # 经PCA后发现，EE为p2p约束，EE orientation在转换到欧氏空间后为p2l约束，因此可以直接采样出约束点
-# 现直接定义约束
-cons_t_tg2ee = pca_ee.mean_
-cons_q_tg2ee = euler2quaternion(pca_logq_ee.mean_)
-print("Constrains in tg: ", cons_q_tg2ee, cons_t_tg2ee)
+# 对于笛卡尔约束，直接GMR
+ts_tg2C = np.hstack((ts_tg2ee, logqs_tg2ee))
+C_train = np.hstack((ts_tg2C, ts_base2tg))
 
 # 然后对隐式约束进行联合PCA：PCA on eb and wr，定义为IC（implicit constrain，隐式约束）
 ts_tg2IC = np.hstack((ts_tg2eb, ts_tg2wr))
@@ -162,16 +165,30 @@ print("GMR train set shape: ", X_train.shape)
 ########################################## Testing ##############################################
 # ============================================================================================= #
 # 读取测试数据
-test_index = 17  # 测试文件索引
 test_file = files[test_index]
+print(test_file)
 _, t_base2eb_test, _, t_base2wr_test, q_base2ee_test, t_base2ee_test, q_base2tg_test, t_base2tg_test = get_transformed_trajectory(test_file, 
                                                                                                     base_bias,
                                                                                                     cut_data=frames,
                                                                                                     orientation=True)  # target坐标系下的所有点坐标
 
-# 根据测试时的目标位置，从GMR中采样出子空间的均值
+# 根据测试时的目标位置，从GMR中采样出的均值
+# Constrain
+C_mu = GMR_sample(C_train, t_base2tg_test)
+print("constrain mean:", C_mu)
+# cons_t_tg2ee = C_mu[0:3]
+# cons_q_tg2ee = euler2quaternion(C_mu[3:])
+cons_t_tg2ee = pca_ee.mean_
+cons_q_tg2ee = euler2quaternion(pca_logq_ee.mean_)
+print("Constrains in tg: ", cons_q_tg2ee, cons_t_tg2ee)
+# Feature space
 mu = GMR_sample(X_train, t_base2tg_test)
-print("Sampled mean: ", mu)
+print("Feature space mean: ", mu)
+if not PCA:
+    _, t_base2wr = rgbody_transform(q_base2tg_test, t_base2tg_test, unit_quaternion, mu[3:])
+    _, t_base2eb = rgbody_transform(q_base2tg_test, t_base2tg_test, unit_quaternion, mu[0:3])
+    p.addUserDebugPoints(t_base2wr, [[0, 1, 0]], 10)
+    p.addUserDebugPoints(t_base2eb, [[0, 0, 1]], 10)
 # 测试数据的目标位置，先转换成0行的数组
 q_base2tg_test = q_base2tg_test.reshape(-1)
 t_base2tg_test = t_base2tg_test.reshape(-1)
@@ -185,14 +202,15 @@ cons_q_base2ee, cons_t_base2ee = rgbody_transform(q_base2tg_test, t_base2tg_test
 print("target position in base:", t_base2tg_test)
 print("Real ee constrains in base: ", q_base2ee_test, t_base2ee_test)
 print("Learned ee constrains in base: ", cons_q_base2ee, cons_t_base2ee)
-p.addUserDebugPoints([t_base2tg_test], [[0, 0, 0]], 5)  # 目标位置（黑）
-p.addUserDebugPoints([t_base2ee_test], [[0, 1, 0]], 5)  # 真实末端位置（绿）
-p.addUserDebugPoints([cons_t_base2ee], [[1, 1, 1]], 5)  # 学到的末端约束位置（白）
+p.addUserDebugPoints([t_base2tg_test], [[0, 0, 0]], 10)  # 目标位置（黑）
+p.addUserDebugPoints([t_base2ee_test], [[0, 1, 0]], 10)  # 真实末端位置（绿）
+p.addUserDebugPoints([cons_t_base2ee], [[1, 1, 1]], 10)  # 学到的末端约束位置（白）
+print("Target position: ", t_base2tg_test)
 
 
 kpt_list = [robot.elbow_index, robot.wrist_index]
 cons_dict = {robot.ee_index:cons_t_base2ee}
-ee_ori = cons_q_base2ee
+ee_ori = q_base2ee_test
 q_init = [0. for i in range(robot.dof)]
 if PCA:
     q_star = robot.feature_space_opt_position(pca, kpt_list, cons_dict, ee_ori, q_init, q_base2tg_test, t_base2tg_test, mu)

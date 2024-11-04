@@ -7,8 +7,8 @@ from Robot_arm import ROBOT
 
 
 arm = "arm_sx"  # 用哪个arm
-tool = "saw2"  # 用哪个工具
-subject = 'sx'  # 用哪些示教数据
+tool = "bottle2"  # 用哪个工具
+train_subject = 'sx'  # 用哪些示教数据
 dt = 0.01
 physicsClient = p.connect(p.GUI)#or p.DIRECT for non-graphical version
 p.setAdditionalSearchPath(pybullet_data.getDataPath()) #optionally
@@ -16,39 +16,41 @@ p.configureDebugVisualizer(p.COV_ENABLE_RENDERING, 0)  # 先不渲染
 p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
 p.setGravity(0,0,0)
 planeId = p.loadURDF("plane.urdf")
-robot = ROBOT(arm, tool)
+robot = ROBOT(arm, tool, kpt_weight_opt=[1, 1, 1, 1])
 kpt_ee = ROBOT.keypoint(robot, robot.ee_index)
 
 # Rendering
 p.configureDebugVisualizer(p.COV_ENABLE_RENDERING, 1)
-p.configureDebugVisualizer(p.COV_ENABLE_GUI, 1)
+# p.configureDebugVisualizer(p.COV_ENABLE_GUI, 1)
 p.resetDebugVisualizerCamera(cameraDistance=1, cameraYaw=-135,
                                  cameraPitch=-36, cameraTargetPosition=[0.2,0,0.5])
 
 tool_class = tool[:-1]
 data_path = 'trajectories/mocap_csv/lfd/'+ tool_class +'/'
 base_bias = robot.base_bias  # 肩宽、肩厚、肩高补偿
-if subject == 'all':
+if train_subject == 'all':
     files = get_all_file_paths(data_path)
 else:
-    files = get_all_file_paths(data_path + subject + '/')
+    files = get_all_file_paths(data_path + train_subject + '/')
+frames = [-2, -1]
 
 print(len(files))
-file_index = 16
+file_index = 10
 file_name = files[file_index]
 print(file_name)
 
 _, ts_base2eb, _, ts_base2wr, qs_base2ee, ts_base2ee, _, ts_base2tg = get_transformed_trajectory(file_name, 
                                                                                   base_bias,
-                                                                                  cut_data=[0, -1],
+                                                                                  cut_data=frames,
                                                                                   orientation=True)
 
 num_points = len(ts_base2ee)
 print(ts_base2ee.shape)
-p.addUserDebugPoints(ts_base2ee, [([1, 0, 0]) for i in range(num_points)], 5)
-p.addUserDebugPoints(ts_base2wr, [([0, 1, 0]) for i in range(num_points)], 5)
-p.addUserDebugPoints(ts_base2eb, [([0, 0, 1]) for i in range(num_points)], 5)
-p.addUserDebugPoints(ts_base2tg, [([0, 0, 0]) for i in range(num_points)], 5)
+p.addUserDebugPoints(ts_base2ee, [([1, 0, 0]) for i in range(num_points)], 10)
+p.addUserDebugPoints(ts_base2wr, [([0, 1, 0]) for i in range(num_points)], 10)
+p.addUserDebugPoints(ts_base2eb, [([0, 0, 1]) for i in range(num_points)], 10)
+p.addUserDebugPoints(ts_base2tg, [([0, 0, 0]) for i in range(num_points)], 10)
+print("Target position: ", ts_base2tg)
 time.sleep(1)
 interval = 2
 ts_base2eb, ts_base2wr, ts_base2ee, qs_base2ee = (down_sample(ts_base2eb, interval), down_sample(ts_base2wr, interval),

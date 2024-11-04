@@ -7,6 +7,7 @@ import math
 
 
 q_a = np.array([0.462, 0.191, 0.462, 0.733])  # Auxillary quaternion
+unit_quaternion = np.array([0, 0, 0, 1])
 
 def get_all_file_paths(directory):
     file_paths = []
