@@ -7,7 +7,7 @@ from Robot_arm import ROBOT
 
 
 arm = "arm_sx"  # 用哪个arm
-tool = "bottle2"  # 用哪个工具
+tool = "pry2"  # 用哪个工具
 train_subject = 'sx'  # 用哪些示教数据
 dt = 0.01
 physicsClient = p.connect(p.GUI)#or p.DIRECT for non-graphical version
@@ -32,10 +32,10 @@ if train_subject == 'all':
     files = get_all_file_paths(data_path)
 else:
     files = get_all_file_paths(data_path + train_subject + '/')
-frames = [-2, -1]
+frames = [0, 1]
 
 print(len(files))
-file_index = 10
+file_index = 15
 file_name = files[file_index]
 print(file_name)
 

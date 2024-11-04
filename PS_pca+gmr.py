@@ -39,7 +39,7 @@ def GMR_sample(X_train, target_position):
 
 
 arm = "arm_sx"  # 用哪个arm
-tool = "bottle2"  # 用哪个工具
+tool = "pry2"  # 用哪个工具
 train_subject = 'sx'  # 用哪些示教数据
 
 physicsClient = p.connect(p.GUI)#or p.DIRECT for non-graphical version
@@ -65,17 +65,17 @@ if train_subject == 'all':
     files = get_all_file_paths(data_path)
 else:
     files = get_all_file_paths(data_path + train_subject + '/')
-frames = [-2, -1]
+frames = [0, 1]
 
 # ========================================================================================== #
 ######################################## Training ############################################
 # ========================================================================================== #
 
 # ================= Config ========================== #
-train_list = [i for i in range(1, len(files), 2)]
-# train_list = [6, 7, 8, 15, 16, 17, 24, 25, 26]
+train_list = [i for i in range(0, len(files))]
+# train_list = [4, 5, 7, 8, 13, 14, 16, 17]
 print(train_list)
-test_index = 10  # 测试文件索引
+test_index = 15  # 测试文件索引
 PCA = False
 # =================================================== #
 
@@ -167,10 +167,15 @@ print("GMR train set shape: ", X_train.shape)
 # 读取测试数据
 test_file = files[test_index]
 print(test_file)
+_, t_tg2eb_test, _, t_tg2wr_test, q_tg2ee_test, t_tg2ee_test, q_tg2tg_test, t_tg2tg_test = get_transformed_trajectory(test_file, 
+                                                                                                    base_bias,
+                                                                                                    cut_data=frames,
+                                                                                                    orientation=True,
+                                                                                                    tg_based=True)  # target坐标系下的所有点坐标
 _, t_base2eb_test, _, t_base2wr_test, q_base2ee_test, t_base2ee_test, q_base2tg_test, t_base2tg_test = get_transformed_trajectory(test_file, 
                                                                                                     base_bias,
                                                                                                     cut_data=frames,
-                                                                                                    orientation=True)  # target坐标系下的所有点坐标
+                                                                                                    orientation=True)  # base坐标系下的所有点坐标
 
 # 根据测试时的目标位置，从GMR中采样出的均值
 # Constrain
@@ -185,10 +190,18 @@ print("Constrains in tg: ", cons_q_tg2ee, cons_t_tg2ee)
 mu = GMR_sample(X_train, t_base2tg_test)
 print("Feature space mean: ", mu)
 if not PCA:
+    # GMR得到的腕、肘关节位置
+    p.addUserDebugPoints([mu[3:]], [[0, 1, 0]], 10)  # tg坐标系下
+    p.addUserDebugPoints([mu[:3]], [[0, 0, 1]], 10)
     _, t_base2wr = rgbody_transform(q_base2tg_test, t_base2tg_test, unit_quaternion, mu[3:])
-    _, t_base2eb = rgbody_transform(q_base2tg_test, t_base2tg_test, unit_quaternion, mu[0:3])
-    p.addUserDebugPoints(t_base2wr, [[0, 1, 0]], 10)
+    _, t_base2eb = rgbody_transform(q_base2tg_test, t_base2tg_test, unit_quaternion, mu[:3])
+    p.addUserDebugPoints(t_base2wr, [[0, 1, 0]], 10)  # base坐标系下
     p.addUserDebugPoints(t_base2eb, [[0, 0, 1]], 10)
+    # 真实的腕、肘关节位置
+    p.addUserDebugPoints(t_tg2wr_test, [[0.5, 1, 0.5]], 10)  # tg坐标系下
+    p.addUserDebugPoints(t_tg2eb_test, [[0.5, 0.5, 1]], 10)
+    p.addUserDebugPoints(t_base2wr_test, [[0.5, 1, 0.5]], 10)  # base坐标系下
+    p.addUserDebugPoints(t_base2eb_test, [[0.5, 0.5, 1]], 10)
 # 测试数据的目标位置，先转换成0行的数组
 q_base2tg_test = q_base2tg_test.reshape(-1)
 t_base2tg_test = t_base2tg_test.reshape(-1)
@@ -210,7 +223,8 @@ print("Target position: ", t_base2tg_test)
 
 kpt_list = [robot.elbow_index, robot.wrist_index]
 cons_dict = {robot.ee_index:cons_t_base2ee}
-ee_ori = q_base2ee_test
+# ee_ori = q_base2ee_test
+ee_ori = cons_q_base2ee
 q_init = [0. for i in range(robot.dof)]
 if PCA:
     q_star = robot.feature_space_opt_position(pca, kpt_list, cons_dict, ee_ori, q_init, q_base2tg_test, t_base2tg_test, mu)
