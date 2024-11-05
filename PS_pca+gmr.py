@@ -73,10 +73,11 @@ frames = [0, 1]
 
 # ================= Config ========================== #
 train_list = [i for i in range(0, len(files), 2)]
-# train_list = [4, 5, 7, 8, 13, 14, 16, 17]
+# train_list = [2, 4, 5, 9, 13, 17, 21, 23, 26]
 print(train_list)
 test_index = 15  # 测试文件索引
 PCA = False
+cons_opt = False
 # =================================================== #
 
 # point docker
@@ -181,10 +182,10 @@ _, t_base2eb_test, _, t_base2wr_test, q_base2ee_test, t_base2ee_test, q_base2tg_
 # Constrain
 C_mu = GMR_sample(C_train, t_base2tg_test)
 print("constrain mean:", C_mu)
-# cons_t_tg2ee = C_mu[0:3]
-# cons_q_tg2ee = euler2quaternion(C_mu[3:])
-cons_t_tg2ee = pca_ee.mean_
-cons_q_tg2ee = euler2quaternion(pca_logq_ee.mean_)
+cons_t_tg2ee = C_mu[0:3]
+cons_q_tg2ee = euler2quaternion(C_mu[3:])
+# cons_t_tg2ee = pca_ee.mean_
+# cons_q_tg2ee = euler2quaternion(pca_logq_ee.mean_)
 print("Constrains in tg: ", cons_q_tg2ee, cons_t_tg2ee)
 # Feature space
 mu = GMR_sample(X_train, t_base2tg_test)
@@ -223,18 +224,15 @@ print("Target position: ", t_base2tg_test)
 
 kpt_list = [robot.elbow_index, robot.wrist_index]
 cons_dict = {robot.ee_index:cons_t_base2ee}
-# ee_ori = q_base2ee_test
 ee_ori = cons_q_base2ee
 q_init = [0. for i in range(robot.dof)]
 if PCA:
-    q_star = robot.feature_space_opt_position(pca, kpt_list, cons_dict, ee_ori, q_init, q_base2tg_test, t_base2tg_test, mu)
+    q_star = robot.feature_space_opt_position(pca, kpt_list, cons_dict, ee_ori, q_init, q_base2tg_test, t_base2tg_test, mu, cons_opt=cons_opt)
 else:
-    # q_star = robot.cartesian_space_opt_position(kpt_list, cons_dict, ee_ori, q_init, q_base2tg_test, t_base2tg_test, mu)
-    q_star = robot.step_kpt_opt(x_eb=t_base2eb.reshape(-1), 
-                                x_wr=t_base2wr.reshape(-1), 
-                                x_ee=cons_t_base2ee, 
-                                q_ee=cons_q_base2ee, 
-                                q_init=[0. for i in range(robot.dof)])
+    q_star = robot.cartesian_space_opt_position(kpt_list, cons_dict, ee_ori, q_init, q_base2tg_test, t_base2tg_test, mu, cons_opt=cons_opt)
+
+    # q_star = robot.step_kpt_opt(x_eb=t_base2eb.reshape(-1), x_wr=t_base2wr.reshape(-1), x_ee=cons_t_base2ee, q_ee=cons_q_base2ee, q_init=q_init)
+
 robot.FK(q_star)
 print(q_star)
 

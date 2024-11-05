@@ -204,7 +204,7 @@ class ROBOT:
         return q_star
     
 
-    def feature_space_opt_position(self, pca, kpt_list, cons_dict, ee_ori, q_init, q_base2tg, t_base2tg, mu):
+    def feature_space_opt_position(self, pca, kpt_list, cons_dict, ee_ori, q_init, q_base2tg, t_base2tg, mu, cons_opt=True):
         """
         假设ee方向为确定约束，仅针对关键点位置进行子空间优化
 
@@ -234,6 +234,7 @@ class ROBOT:
             x = x.reshape((1, -1))
             z = pca.transform(x)
             E = np.dot(z - mu, (z - mu).T)  # subspace error
+            E = E.reshape(-1)
             return E
         
         def func_jac(q):
@@ -289,12 +290,21 @@ class ROBOT:
                  'fun': cons_position}, 
                 {'type': 'ineq', 
                  'fun': cons_orientation}]
-        q_star = minimize(func, q_init, method='SLSQP', jac=func_jac, constraints=cons, bounds=bounds)
+        
+        if cons_opt:
+            # 约束优化
+            q_star = minimize(func, q_init, method='COBYLA', jac=func_jac, constraints=cons, bounds=bounds)
+        else:
+            # 无约束优化
+            def eqn(q):
+                return func(q) - 50*cons_position(q) - cons_orientation(q)
+            q_star = minimize(eqn, q_init, method='BFGS')
+
         Error = q_star.fun
         q_star = np.array(q_star.x)
         return q_star
     
-    def cartesian_space_opt_position(self, kpt_list, cons_dict, ee_ori, q_init, q_base2tg, t_base2tg, mu):
+    def cartesian_space_opt_position(self, kpt_list, cons_dict, ee_ori, q_init, q_base2tg, t_base2tg, mu, cons_opt=True):
         """
         假设ee方向为确定约束，仅针对关键点位置进行子空间优化
 
@@ -311,6 +321,7 @@ class ROBOT:
         """
         q_init = q_init  # 长度为n×m（目标数×关节自由度数）
         bounds = self.bound
+        print(bounds)
         def func(q):
             self.FK(q)
             x = []  # keypoint positions
@@ -320,7 +331,7 @@ class ROBOT:
                 # 这里需要先把笛卡尔坐标转换到target坐标下
                 _, t_tg2k, _ = coordinate_transform(q_base2k, t_base2k, q_base2tg, t_base2tg)
                 x = np.hstack((x, t_tg2k))
-            x = x.reshape((1, -1))
+            x = x.reshape(-1)
             E = np.dot(x - mu, (x - mu).T)  # subspace error
             return E
         
@@ -376,7 +387,16 @@ class ROBOT:
                  'fun': cons_position}, 
                 {'type': 'ineq', 
                  'fun': cons_orientation}]
-        q_star = minimize(func, q_init, method='SLSQP', jac=func_jac, constraints=cons, bounds=bounds)
+        
+        if cons_opt:
+            # 约束优化
+            q_star = minimize(func, q_init, method='COBYLA', jac=func_jac, constraints=cons, bounds=bounds)
+        else:
+            # 无约束优化
+            def eqn(q):
+                return func(q) - 50*cons_position(q) - cons_orientation(q)  # 50在这里只是随便设的权重，理念是方差越小的p2p约束，这个权重应该越大
+            q_star = minimize(eqn, q_init, method='BFGS')
+
         Error = q_star.fun
         q_star = np.array(q_star.x)
         return q_star
