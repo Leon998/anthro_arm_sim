@@ -105,6 +105,9 @@ for file_index in train_list:
     p.addUserDebugPoints(t_tg2eb, [[0, 0, 1]], 5)
     # 先实现四元数到欧氏空间转换
     log_q = quaternion2euler(q_tg2ee.reshape(-1))
+    ## TODO 加噪声   ##
+    ##              ##
+    ##################
     ts_tg2eb = np.vstack((ts_tg2eb, t_tg2eb))
     ts_tg2wr = np.vstack((ts_tg2wr, t_tg2wr))
     ts_tg2ee = np.vstack((ts_tg2ee, t_tg2ee))
@@ -227,9 +230,9 @@ cons_dict = {robot.ee_index:cons_t_base2ee}
 ee_ori = cons_q_base2ee
 q_init = [0. for i in range(robot.dof)]
 if PCA:
-    q_star = robot.feature_space_opt_position(pca, kpt_list, cons_dict, ee_ori, q_init, q_base2tg_test, t_base2tg_test, mu, cons_opt=cons_opt)
+    q_star = robot.feature_space_opt_position(pca, kpt_list, mu, cons_dict, ee_ori, q_init, q_base2tg_test, t_base2tg_test, cons_opt=cons_opt)
 else:
-    q_star = robot.cartesian_space_opt_position(kpt_list, cons_dict, ee_ori, q_init, q_base2tg_test, t_base2tg_test, mu, cons_opt=cons_opt)
+    q_star = robot.cartesian_space_opt_position(kpt_list, mu, cons_dict, ee_ori, q_init, q_base2tg_test, t_base2tg_test, cons_opt=cons_opt)
 
     # q_star = robot.step_kpt_opt(x_eb=t_base2eb.reshape(-1), x_wr=t_base2wr.reshape(-1), x_ee=cons_t_base2ee, q_ee=cons_q_base2ee, q_init=q_init)
 

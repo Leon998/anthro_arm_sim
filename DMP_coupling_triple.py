@@ -8,44 +8,51 @@ from utils import *
 import time
 
 
+arm = "arm_sx"  # 用哪个arm
+tool = "pry2"  # 用哪个工具
+train_subject = 'sx'  # 用哪些示教数据
+
 physicsClient = p.connect(p.GUI)#or p.DIRECT for non-graphical version
 p.setAdditionalSearchPath(pybullet_data.getDataPath()) #optionally
 p.configureDebugVisualizer(p.COV_ENABLE_RENDERING, 0)  # 先不渲染
 p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
 p.setGravity(0,0,0)
 planeId = p.loadURDF("plane.urdf")
-robot = ROBOT("arm_bottle1_demo")
+robot = ROBOT(arm, tool)
 kpt_ee = ROBOT.keypoint(robot, robot.ee_index)
 
 # Rendering
 p.configureDebugVisualizer(p.COV_ENABLE_RENDERING, 1)
-p.configureDebugVisualizer(p.COV_ENABLE_GUI, 1)
+# p.configureDebugVisualizer(p.COV_ENABLE_GUI, 1)
 p.resetDebugVisualizerCamera(cameraDistance=1, cameraYaw=-135,
                                  cameraPitch=-36, cameraTargetPosition=[0.2,0,0.5])
 
-base_position = np.array(robot.startPos) + np.array([-0.05, 0.1, -0.15])  # 肩宽、肩厚、肩高补偿
-main_path = 'trajectories/mocap_csv/710/bottle/'
-file_path = main_path + "source/"
-files = os.listdir(file_path)
-segment_file = np.loadtxt(main_path + "segment.txt")
+#################################### Loading lfd data ########################################
+tool_class = tool[:-1]
+data_path = 'trajectories/mocap_csv/lfd/'+ tool_class +'/'
+base_bias = robot.base_bias  # 肩宽、肩厚、肩高补偿
+if train_subject == 'all':
+    files = get_all_file_paths(data_path)
+else:
+    files = get_all_file_paths(data_path + train_subject + '/')
+frames = [0, -1]
 
 
 ## loading standard file
-file_index = 5
-file_name = file_path + files[file_index]
+file_index = 16
+file_name = files[file_index]
 print(file_name)
-segment_index = int(segment_file[file_index])
 
-_, ts_base2eb, _, ts_base2wr, qs_base2ee, ts_base2ee = get_transformed_trajectory(file_name, 
-                                                                                  base_position,
-                                                                                  cut_data=[segment_index, -1],
+_, ts_base2eb, _, ts_base2wr, qs_base2ee, ts_base2ee, _, _ = get_transformed_trajectory(file_name, 
+                                                                                  base_bias,
+                                                                                  cut_data=frames,
                                                                                   orientation=True)
 Y = np.hstack((ts_base2eb, ts_base2wr, ts_base2ee))
 print(Y.shape)
 num_points = len(ts_base2ee)
-p.addUserDebugPoints(ts_base2ee, [([1, 0, 0]) for i in range(num_points)], 5)
-p.addUserDebugPoints(ts_base2wr, [([0, 1, 0]) for i in range(num_points)], 5)
-p.addUserDebugPoints(ts_base2eb, [([0, 0, 1]) for i in range(num_points)], 5)
+p.addUserDebugPoints(ts_base2ee, [([1, 0, 0]) for i in range(num_points)], 8)
+p.addUserDebugPoints(ts_base2wr, [([0, 1, 0]) for i in range(num_points)], 8)
+p.addUserDebugPoints(ts_base2eb, [([0, 0, 1]) for i in range(num_points)], 8)
 
 ## DMP
 T = np.linspace(0.0, 1.0, num_points)
@@ -62,17 +69,16 @@ cartesian_dmp.imitate(T, cartesian_Y)
 
 
 # Loading new file
-new_index = 15
-new_file_name = file_path + files[new_index]
-new_segment_index = int(segment_file[new_index])
-_, new_ts_base2eb, _, new_ts_base2wr, new_qs_base2ee, new_ts_base2ee = get_transformed_trajectory(new_file_name, 
-                                                                                  base_position,
-                                                                                  cut_data=[new_segment_index, -1],
+new_index = 12
+new_file_name = files[new_index]
+_, new_ts_base2eb, _, new_ts_base2wr, new_qs_base2ee, new_ts_base2ee, _, _ = get_transformed_trajectory(new_file_name, 
+                                                                                  base_bias,
+                                                                                  cut_data=frames,
                                                                                   orientation=True)
 new_len = len(new_ts_base2ee)
-p.addUserDebugPoints(new_ts_base2ee, [([1, 0, 0]) for i in range(new_len)], 5)
-p.addUserDebugPoints(new_ts_base2wr, [([0, 1, 0]) for i in range(new_len)], 5)
-p.addUserDebugPoints(new_ts_base2eb, [([0, 0, 1]) for i in range(new_len)], 5)
+p.addUserDebugPoints(new_ts_base2ee, [([1, 0, 0]) for i in range(new_len)], 8)
+p.addUserDebugPoints(new_ts_base2wr, [([0, 1, 0]) for i in range(new_len)], 8)
+p.addUserDebugPoints(new_ts_base2eb, [([0, 0, 1]) for i in range(new_len)], 8)
 
 
 ## IMITATE

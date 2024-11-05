@@ -16,7 +16,7 @@ p.configureDebugVisualizer(p.COV_ENABLE_RENDERING, 0)  # 先不渲染
 p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
 p.setGravity(0,0,0)
 planeId = p.loadURDF("plane.urdf")
-robot = ROBOT(arm, tool, kpt_weight_opt=[1, 1, 1, 1])
+robot = ROBOT(arm, tool)
 kpt_ee = ROBOT.keypoint(robot, robot.ee_index)
 
 # Rendering
@@ -32,10 +32,10 @@ if train_subject == 'all':
     files = get_all_file_paths(data_path)
 else:
     files = get_all_file_paths(data_path + train_subject + '/')
-frames = [0, 1]
+frames = [0, -1]
 
 print(len(files))
-file_index = 15
+file_index = 12
 file_name = files[file_index]
 print(file_name)
 
@@ -46,10 +46,10 @@ _, ts_base2eb, _, ts_base2wr, qs_base2ee, ts_base2ee, _, ts_base2tg = get_transf
 
 num_points = len(ts_base2ee)
 print(ts_base2ee.shape)
-p.addUserDebugPoints(ts_base2ee, [([1, 0, 0]) for i in range(num_points)], 10)
-p.addUserDebugPoints(ts_base2wr, [([0, 1, 0]) for i in range(num_points)], 10)
-p.addUserDebugPoints(ts_base2eb, [([0, 0, 1]) for i in range(num_points)], 10)
-p.addUserDebugPoints(ts_base2tg, [([0, 0, 0]) for i in range(num_points)], 10)
+p.addUserDebugPoints(ts_base2ee, [([1, 0, 0]) for i in range(num_points)], 8)
+p.addUserDebugPoints(ts_base2wr, [([0, 1, 0]) for i in range(num_points)], 8)
+p.addUserDebugPoints(ts_base2eb, [([0, 0, 1]) for i in range(num_points)], 8)
+p.addUserDebugPoints(ts_base2tg, [([0, 0, 0]) for i in range(num_points)], 8)
 print("Target position: ", ts_base2tg)
 time.sleep(1)
 interval = 2

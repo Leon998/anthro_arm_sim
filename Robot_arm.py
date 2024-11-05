@@ -8,7 +8,7 @@ from math import pi
 
 class ROBOT:
     def __init__(self, arm, tool, dof=7, 
-                 kpt_weight_opt=[10, 5, 10, 1],  # [eb, wr, ee, ee_ori]
+                 kpt_weight_opt=[5, 5, 10, 1],  # [eb, wr, ee, ee_ori]
                  kpt_weight_PDIK=[2, 1, 10, 1]):
         self.startPos = [0, 0, 1]
         self.startOrientation = p.getQuaternionFromEuler([0, 0, 0])
@@ -204,7 +204,7 @@ class ROBOT:
         return q_star
     
 
-    def feature_space_opt_position(self, pca, kpt_list, cons_dict, ee_ori, q_init, q_base2tg, t_base2tg, mu, cons_opt=True):
+    def feature_space_opt_position(self, pca, kpt_list, mu, cons_dict, ee_ori, q_init, q_base2tg, t_base2tg, cons_opt=True):
         """
         假设ee方向为确定约束，仅针对关键点位置进行子空间优化
 
@@ -304,13 +304,13 @@ class ROBOT:
         q_star = np.array(q_star.x)
         return q_star
     
-    def cartesian_space_opt_position(self, kpt_list, cons_dict, ee_ori, q_init, q_base2tg, t_base2tg, mu, cons_opt=True):
+    def cartesian_space_opt_position(self, kpt_list, mu, cons_dict, ee_ori, q_init, q_base2tg, t_base2tg, cons_opt=True):
         """
         假设ee方向为确定约束，仅针对关键点位置进行子空间优化
 
         Parameters
         ----------
-        kpt_list : a list containing the index of kpts (e.g. [robot.elbow_index, robot.wrist_index])（PCA梯度×机器人雅可比）
+        kpt_list : a list containing the index of kpts (e.g. [robot.elbow_index, robot.wrist_index])
         cons_dict : a dict containing explicit constrains ({index: cons_t_base2k})
         ee_ori : 末端朝向
         q_base2tg, t_base2tg : 目标点位在机器人坐标系下的位姿
