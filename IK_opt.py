@@ -32,10 +32,10 @@ if train_subject == 'all':
     files = get_all_file_paths(data_path)
 else:
     files = get_all_file_paths(data_path + train_subject + '/')
-frames = [0, -1]
+frames = [0, 1]
 
 print(len(files))
-file_index = 12
+file_index = 15
 file_name = files[file_index]
 print(file_name)
 

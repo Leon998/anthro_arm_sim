@@ -8,7 +8,7 @@ from utils import *
 import time
 
 
-arm = "arm_sx"  # 用哪个arm
+arm = "arm_chy"  # 用哪个arm
 tool = "pry2"  # 用哪个工具
 train_subject = 'sx'  # 用哪些示教数据
 

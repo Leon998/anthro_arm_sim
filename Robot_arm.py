@@ -306,7 +306,7 @@ class ROBOT:
     
     def cartesian_space_opt_position(self, kpt_list, mu, cons_dict, ee_ori, q_init, q_base2tg, t_base2tg, cons_opt=True):
         """
-        假设ee方向为确定约束，仅针对关键点位置进行子空间优化
+        假设ee方向为确定约束，仅针对关键点位置进行笛卡尔空间优化
 
         Parameters
         ----------
