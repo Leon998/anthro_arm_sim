@@ -6,7 +6,7 @@ from utils import *
 from Robot_arm import ROBOT
 
 
-arm = "arm_sx"  # 用哪个arm
+arm = "arm_robot"  # 用哪个arm
 tool = "pry2"  # 用哪个工具
 subject = 'sx'  # 用哪些示教数据
 dt = 0.01
@@ -26,7 +26,6 @@ p.resetDebugVisualizerCamera(cameraDistance=1, cameraYaw=-135,
                                  cameraPitch=-36, cameraTargetPosition=[0.2,0,0.5])
 
 tool_class = tool[:-1]
-# tool_class = "boxon"
 data_path = 'trajectories/mocap_csv/lfd/'+ tool_class +'/'
 base_bias = robot.base_bias  # 肩宽、肩厚、肩高补偿
 if subject == 'all':
@@ -35,13 +34,14 @@ else:
     files = get_all_file_paths(data_path + subject + '/')
 
 print(len(files))
-file_index = 17
+file_index = 16
 file_name = files[file_index]
 print(file_name)
+frame = [0, -1]
 
 _, ts_base2eb, _, ts_base2wr, qs_base2ee, ts_base2ee, _, ts_base2tg = get_transformed_trajectory(file_name, 
                                                                                   base_bias,
-                                                                                  cut_data=[0, -1],
+                                                                                  cut_data=frame,
                                                                                   orientation=True)
 
 num_points = len(ts_base2ee)
@@ -51,14 +51,13 @@ print(ts_base2ee.shape)
 # p.addUserDebugPoints(ts_base2eb, [([0, 0, 1]) for i in range(num_points)], 5)
 # p.addUserDebugPoints(ts_base2tg, [([0, 0, 0]) for i in range(num_points)], 5)
 # 目标位置球体
-rgba_color = [0, 0.5, 0.5, 0.5]
-radius = 0.025
+rgba_color = [1, 0, 0, 0.5]
+radius = 0.03
 
-# visual_shape = p.createVisualShape(p.GEOM_SPHERE, radius=radius, rgbaColor=rgba_color)
-# visual_shape = p.createVisualShape(p.GEOM_BOX, halfExtents=[radius,radius,radius], rgbaColor=rgba_color)
-# sphere = p.createMultiBody(baseMass=0,  # 静态物体，质量为 0
-#                            baseVisualShapeIndex=visual_shape,
-#                            basePosition=ts_base2ee[0].reshape(-1) + np.array([0, 0, 0.03]))
+visual_shape = p.createVisualShape(p.GEOM_SPHERE, radius=radius, rgbaColor=rgba_color)
+sphere = p.createMultiBody(baseMass=1,
+                           baseVisualShapeIndex=visual_shape,
+                           basePosition=ts_base2ee[0].reshape(-1) + np.array([0, 0, 0.05]))
 
 time.sleep(1)
 interval = 2

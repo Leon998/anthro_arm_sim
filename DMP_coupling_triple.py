@@ -8,8 +8,8 @@ from utils import *
 import time
 
 
-arm = "arm_chy"  # 用哪个arm
-tool = "pry2"  # 用哪个工具
+arm = "arm_sx"  # 用哪个arm
+tool = "bottle2"  # 用哪个工具
 train_subject = 'sx'  # 用哪些示教数据
 
 physicsClient = p.connect(p.GUI)#or p.DIRECT for non-graphical version
@@ -39,7 +39,7 @@ frames = [0, -1]
 
 
 ## loading standard file
-file_index = 16
+file_index = 1
 file_name = files[file_index]
 print(file_name)
 
@@ -69,11 +69,14 @@ cartesian_dmp.imitate(T, cartesian_Y)
 
 
 # Loading new file
-new_index = 12
+new_index = 5
 new_file_name = files[new_index]
+print(new_file_name)
+new_frames = frames
+# new_frames = [50, -1]
 _, new_ts_base2eb, _, new_ts_base2wr, new_qs_base2ee, new_ts_base2ee, _, _ = get_transformed_trajectory(new_file_name, 
                                                                                   base_bias,
-                                                                                  cut_data=frames,
+                                                                                  cut_data=new_frames,
                                                                                   orientation=True)
 new_len = len(new_ts_base2ee)
 p.addUserDebugPoints(new_ts_base2ee, [([1, 0, 0]) for i in range(new_len)], 8)
@@ -82,15 +85,18 @@ p.addUserDebugPoints(new_ts_base2eb, [([0, 0, 1]) for i in range(new_len)], 8)
 
 
 ## IMITATE
+start_bias = np.array([0.01, -0.01, 0.01, -0.01, 0.01, -0.015, 0, 0, 0])
+end_bias = np.array([-0.01, 0.01, -0.015, 0.01, -0.01, 0.01, 0, 0, 0])
+
 new_Y = np.hstack((new_ts_base2eb, new_ts_base2wr, new_ts_base2ee))
 new_catesian_Y = np.hstack((new_ts_base2ee, new_qs_base2ee))
-dmp.configure(start_y=new_Y[0], goal_y=new_Y[-1])
+dmp.configure(start_y=new_Y[0] + start_bias, goal_y=new_Y[-1] + end_bias)
 cartesian_dmp.configure(start_y=new_catesian_Y[0], goal_y=new_catesian_Y[-1])
 # compute desired distance
-eb_position = new_Y[0][0:3]
-wr_position = new_Y[0][3:6]
-ee_position = new_Y[0][6:9]
-shoulder_position = p.getLinkState(robot.robot_id, robot.shoulder_index)[0]
+shoulder_position = np.array(p.getLinkState(robot.robot_id, robot.shoulder_index)[0])
+eb_position = np.array(p.getLinkState(robot.robot_id, robot.elbow_index)[0])
+wr_position = np.array(p.getLinkState(robot.robot_id, robot.wrist_index)[0])
+ee_position = np.array(p.getLinkState(robot.robot_id, robot.ee_index)[0])
 print(shoulder_position)
 L0 = np.linalg.norm(shoulder_position - eb_position)
 L1 = np.linalg.norm(eb_position - wr_position)
@@ -102,24 +108,34 @@ ct = CouplingTermTriple3DDistance(shoulder_position, desired_distance=[L0, L1, L
 
 imitate_T, imitate_Y = dmp.open_loop(coupling_term=ct)
 cartesian_imitate_T, cartesian_imitate_Y = cartesian_dmp.open_loop()
-imitae_ts_base2eb = imitate_Y[:,0:3]
-imitae_ts_base2wr = imitate_Y[:,3:6]
-imitae_ts_base2ee = imitate_Y[:,6:9]
-imitae_qs_base2ee = cartesian_imitate_Y[:,3:]
+imitate_ts_base2eb = imitate_Y[:,0:3]
+imitate_ts_base2wr = imitate_Y[:,3:6]
+imitate_ts_base2ee = imitate_Y[:,6:9]
+imitate_qs_base2ee = cartesian_imitate_Y[:,3:]
 imitate_len = len(imitate_T)
-p.addUserDebugPoints(imitae_ts_base2ee, [([1, 0.5, 0.5]) for i in range(imitate_len)], 5)
-p.addUserDebugPoints(imitae_ts_base2wr, [([0.5, 1, 0.5]) for i in range(imitate_len)], 5)
-p.addUserDebugPoints(imitae_ts_base2eb, [([0.5, 0.5, 1]) for i in range(imitate_len)], 5)
+p.addUserDebugPoints(imitate_ts_base2ee, [([1, 0.5, 0.5]) for i in range(imitate_len)], 5)
+p.addUserDebugPoints(imitate_ts_base2wr, [([0.5, 1, 0.5]) for i in range(imitate_len)], 5)
+p.addUserDebugPoints(imitate_ts_base2eb, [([0.5, 0.5, 1]) for i in range(imitate_len)], 5)
+
+# Saving
+# np.savetxt("draw/DMP_traj/eb_real.txt", new_ts_base2eb)
+if ct == None:
+    np.savetxt("draw/DMP_traj/eb_noct.txt", imitate_ts_base2eb)
+else:
+    np.savetxt("draw/DMP_traj/eb_ct.txt", imitate_ts_base2eb)
+
+# while True:
+#     p.stepSimulation()
 
 
 ## 逐步opt
 # 首先提取出初始时刻的关键点位置
 frame = 0
-x_eb, x_wr, x_ee, q_ee = (imitae_ts_base2eb[frame], imitae_ts_base2wr[frame], 
-                          imitae_ts_base2ee[frame], imitae_qs_base2ee[frame])
+x_eb, x_wr, x_ee, q_ee = (imitate_ts_base2eb[frame], imitate_ts_base2wr[frame], 
+                          imitate_ts_base2ee[frame], imitate_qs_base2ee[frame])
 # 然后提取过程中每一时刻的位置和速度
-X_eb, X_wr, X_ee, Q_ee = (imitae_ts_base2eb, imitae_ts_base2wr, 
-                          imitae_ts_base2ee, imitae_qs_base2ee)
+X_eb, X_wr, X_ee, Q_ee = (imitate_ts_base2eb, imitate_ts_base2wr, 
+                          imitate_ts_base2ee, imitate_qs_base2ee)
 
 INIT_FLAG = True
 run_1st = True
