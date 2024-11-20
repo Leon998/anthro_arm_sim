@@ -8,6 +8,26 @@ from utils import *
 import time
 
 
+def calculate_pointwise_distances(traj1, traj2):
+    """
+    Calculates the pointwise Euclidean distances between two trajectories.
+    
+    Parameters:
+        traj1 (np.ndarray): First trajectory of shape (N, 3).
+        traj2 (np.ndarray): Second trajectory of shape (N, 3).
+    
+    Returns:
+        np.ndarray: A 1D array of distances of length N.
+    """
+    # Ensure the two trajectories have the same shape
+    if traj1.shape != traj2.shape:
+        raise ValueError("Both trajectories must have the same shape.")
+    
+    # Calculate Euclidean distances for each pair of points
+    distances = np.linalg.norm(traj1 - traj2, axis=1)
+    return distances
+
+
 arm = "arm_sx"  # 用哪个arm
 tool = "bottle2"  # 用哪个工具
 train_subject = 'sx'  # 用哪些示教数据
@@ -117,16 +137,26 @@ p.addUserDebugPoints(imitate_ts_base2ee, [([1, 0.5, 0.5]) for i in range(imitate
 p.addUserDebugPoints(imitate_ts_base2wr, [([0.5, 1, 0.5]) for i in range(imitate_len)], 5)
 p.addUserDebugPoints(imitate_ts_base2eb, [([0.5, 0.5, 1]) for i in range(imitate_len)], 5)
 
-# Saving
+ts_base2shoulder = np.full((imitate_len, 3), shoulder_position)
+L0_distances = calculate_pointwise_distances(ts_base2shoulder, imitate_ts_base2eb)
+L1_distances = calculate_pointwise_distances(imitate_ts_base2eb, imitate_ts_base2wr)
+L2_distances = calculate_pointwise_distances(imitate_ts_base2wr, imitate_ts_base2ee)
+
+# # Saving
 # np.savetxt("draw/DMP_traj/eb_real.txt", new_ts_base2eb)
-if ct == None:
-    np.savetxt("draw/DMP_traj/eb_noct.txt", imitate_ts_base2eb)
-else:
-    np.savetxt("draw/DMP_traj/eb_ct.txt", imitate_ts_base2eb)
-
-# while True:
-#     p.stepSimulation()
-
+# np.savetxt("draw/DMP_traj/wr_real.txt", new_ts_base2wr)
+# if ct == None:
+#     np.savetxt("draw/DMP_traj/eb_noct.txt", imitate_ts_base2eb)
+#     np.savetxt("draw/DMP_traj/wr_noct.txt", imitate_ts_base2wr)
+#     np.savetxt("draw/DMP_traj/L0_noct.txt", L0_distances)
+#     np.savetxt("draw/DMP_traj/L1_noct.txt", L1_distances)
+#     np.savetxt("draw/DMP_traj/L2_noct.txt", L2_distances)
+# else:
+#     np.savetxt("draw/DMP_traj/eb_ct.txt", imitate_ts_base2eb)
+#     np.savetxt("draw/DMP_traj/wr_ct.txt", imitate_ts_base2wr)
+#     np.savetxt("draw/DMP_traj/L0_ct.txt", L0_distances)
+#     np.savetxt("draw/DMP_traj/L1_ct.txt", L1_distances)
+#     np.savetxt("draw/DMP_traj/L2_ct.txt", L2_distances)
 
 ## 逐步opt
 # 首先提取出初始时刻的关键点位置
