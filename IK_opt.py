@@ -7,7 +7,7 @@ from Robot_arm import ROBOT
 
 
 arm = "arm_sx"  # 用哪个arm
-tool = "bottle1"  # 用哪个工具
+tool = "pry2"  # 用哪个工具
 train_subject = 'sx'  # 用哪些示教数据
 dt = 0.01
 physicsClient = p.connect(p.GUI)#or p.DIRECT for non-graphical version
@@ -35,7 +35,7 @@ else:
 frames = [0, -1]
 
 print(len(files))
-file_index = 5
+file_index = 5 + 9
 file_name = files[file_index]
 print(file_name)
 
@@ -50,7 +50,7 @@ p.addUserDebugPoints(ts_base2ee, [([1, 0, 0]) for i in range(num_points)], 8)
 p.addUserDebugPoints(ts_base2wr, [([0, 1, 0]) for i in range(num_points)], 8)
 p.addUserDebugPoints(ts_base2eb, [([0, 0, 1]) for i in range(num_points)], 8)
 p.addUserDebugPoints(ts_base2tg, [([0, 0, 0]) for i in range(num_points)], 8)
-print("Target position: ", ts_base2tg)
+# print("Target position: ", ts_base2tg)
 time.sleep(1)
 interval = 2
 ts_base2eb, ts_base2wr, ts_base2ee, qs_base2ee = (down_sample(ts_base2eb, interval), down_sample(ts_base2wr, interval),

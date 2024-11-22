@@ -29,7 +29,7 @@ def calculate_pointwise_distances(traj1, traj2):
 
 
 arm = "arm_sx"  # 用哪个arm
-tool = "bottle2"  # 用哪个工具
+tool = "pry2"  # 用哪个工具
 train_subject = 'sx'  # 用哪些示教数据
 
 physicsClient = p.connect(p.GUI)#or p.DIRECT for non-graphical version
@@ -59,7 +59,7 @@ frames = [0, -1]
 
 
 ## loading standard file
-file_index = 1
+file_index = 4
 file_name = files[file_index]
 print(file_name)
 
@@ -89,7 +89,7 @@ cartesian_dmp.imitate(T, cartesian_Y)
 
 
 # Loading new file
-new_index = 5
+new_index = 5 + 9
 new_file_name = files[new_index]
 print(new_file_name)
 new_frames = frames
@@ -105,8 +105,8 @@ p.addUserDebugPoints(new_ts_base2eb, [([0, 0, 1]) for i in range(new_len)], 8)
 
 
 ## IMITATE
-start_bias = np.array([0.01, -0.01, 0.01, -0.01, 0.01, -0.015, 0, 0, 0])
-end_bias = np.array([-0.01, 0.01, -0.015, 0.01, -0.01, 0.01, 0, 0, 0])
+start_bias = np.array([-0.05, -0.01, 0.05, 0.05, 0.01, -0.05, 0, 0, 0])
+end_bias = np.array([0.05, 0.01, -0.05, -0.05, -0.01, 0.05, 0, 0, 0])
 
 new_Y = np.hstack((new_ts_base2eb, new_ts_base2wr, new_ts_base2ee))
 new_catesian_Y = np.hstack((new_ts_base2ee, new_qs_base2ee))
