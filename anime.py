@@ -6,8 +6,8 @@ from utils import *
 from Robot_arm import ROBOT
 
 
-arm = "arm_robot"  # 用哪个arm
-tool = "pry2"  # 用哪个工具
+arm = "arm_sx"  # 用哪个arm
+tool = "saw2"  # 用哪个工具
 subject = 'sx'  # 用哪些示教数据
 dt = 0.01
 physicsClient = p.connect(p.GUI)#or p.DIRECT for non-graphical version
@@ -26,7 +26,7 @@ p.resetDebugVisualizerCamera(cameraDistance=1, cameraYaw=-135,
                                  cameraPitch=-36, cameraTargetPosition=[0.2,0,0.5])
 
 tool_class = tool[:-1]
-data_path = 'trajectories/mocap_csv/lfd/'+ tool_class +'/'
+data_path = 'trajectories/mocap_csv/demo/'+ tool_class +'/'
 base_bias = robot.base_bias  # 肩宽、肩厚、肩高补偿
 if subject == 'all':
     files = get_all_file_paths(data_path)
@@ -34,7 +34,7 @@ else:
     files = get_all_file_paths(data_path + subject + '/')
 
 print(len(files))
-file_index = 16
+file_index = 3
 file_name = files[file_index]
 print(file_name)
 frame = [0, -1]
@@ -46,10 +46,10 @@ _, ts_base2eb, _, ts_base2wr, qs_base2ee, ts_base2ee, _, ts_base2tg = get_transf
 
 num_points = len(ts_base2ee)
 print(ts_base2ee.shape)
-# p.addUserDebugPoints(ts_base2ee, [([1, 0, 0]) for i in range(num_points)], 5)
-# p.addUserDebugPoints(ts_base2wr, [([0, 1, 0]) for i in range(num_points)], 5)
-# p.addUserDebugPoints(ts_base2eb, [([0, 0, 1]) for i in range(num_points)], 5)
-# p.addUserDebugPoints(ts_base2tg, [([0, 0, 0]) for i in range(num_points)], 5)
+p.addUserDebugPoints(ts_base2ee, [([1, 0, 0]) for i in range(num_points)], 5)
+p.addUserDebugPoints(ts_base2wr, [([0, 1, 0]) for i in range(num_points)], 5)
+p.addUserDebugPoints(ts_base2eb, [([0, 0, 1]) for i in range(num_points)], 5)
+p.addUserDebugPoints(ts_base2tg, [([0, 0, 0]) for i in range(num_points)], 5)
 # 目标位置球体
 rgba_color = [1, 0, 0, 0.5]
 radius = 0.03
@@ -57,29 +57,12 @@ radius = 0.03
 visual_shape = p.createVisualShape(p.GEOM_SPHERE, radius=radius, rgbaColor=rgba_color)
 sphere = p.createMultiBody(baseMass=1,
                            baseVisualShapeIndex=visual_shape,
-                           basePosition=ts_base2ee[0].reshape(-1) + np.array([0, 0, 0.05]))
+                           basePosition=ts_base2tg[0].reshape(-1))
 
 time.sleep(1)
 interval = 2
 ts_base2eb, ts_base2wr, ts_base2ee, qs_base2ee = (down_sample(ts_base2eb, interval), down_sample(ts_base2wr, interval),
                                                   down_sample(ts_base2ee, interval), down_sample(qs_base2ee, interval))
-#############################################################################################
-# ## 全局opt
-# Q_star, Error = robot.kpt_opt(sample_len, ts_base2eb, ts_base2wr, ts_base2ee, qs_base2ee)
-# print("Q_star = ", Q_star)
-# print("Error = ", Error)
-
-# loop = True
-# while True:
-#     p.stepSimulation()
-#     if loop:
-#         robot.FK(robot.init_joint_angles)
-#         time.sleep(0.5)
-#     for q_star in Q_star:
-#         print("q_star: ", q_star)
-#         robot.FK(q_star)
-#         time.sleep(0.25)
-#############################################################################################
 
 ## 逐步opt
 # 首先提取出初始时刻的关键点位置

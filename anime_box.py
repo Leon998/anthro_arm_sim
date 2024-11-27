@@ -27,7 +27,7 @@ p.resetDebugVisualizerCamera(cameraDistance=1, cameraYaw=-135,
 
 # tool_class = tool[:-1]
 tool_class = "boxon"
-data_path = 'trajectories/mocap_csv/lfd/'+ tool_class +'/'
+data_path = 'trajectories/mocap_csv/demo/'+ tool_class +'/'
 base_bias = robot.base_bias  # 肩宽、肩厚、肩高补偿
 if subject == 'all':
     files = get_all_file_paths(data_path)
@@ -35,7 +35,7 @@ else:
     files = get_all_file_paths(data_path + subject + '/')
 
 print(len(files))
-file_index = 2
+file_index = 3
 file_name = files[file_index]
 print(file_name)
 frame = [0, -1]
@@ -119,5 +119,5 @@ while True:
         for i in range(0, len(X_eb)):  # 从0开始
             robot.FK(Q[i])
             time.sleep(dt)
-            if i < 50:
-                p.resetBasePositionAndOrientation(sphere, X_eb[i] + np.array([0.05, 0.01, 0]), [0, 0, 0, 1])
+            # if i < 50:
+            #     p.resetBasePositionAndOrientation(sphere, X_eb[i] + np.array([0.05, 0.01, 0]), [0, 0, 0, 1])
