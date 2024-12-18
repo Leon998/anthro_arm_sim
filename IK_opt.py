@@ -7,7 +7,7 @@ from Robot_arm import ROBOT
 
 
 arm = "arm_sx"  # 用哪个arm
-tool = "pry2"  # 用哪个工具
+tool = "bottle2"  # 用哪个工具
 train_subject = 'sx'  # 用哪些示教数据
 dt = 0.01
 physicsClient = p.connect(p.GUI)#or p.DIRECT for non-graphical version
@@ -35,7 +35,7 @@ else:
 frames = [0, -1]
 
 print(len(files))
-file_index = 5 + 9
+file_index = 13
 file_name = files[file_index]
 print(file_name)
 
@@ -90,6 +90,7 @@ while True:
         robot.FK(q_star)
         Q.append(q_star)
         INIT_FLAG = False
+        print("Q: ", Q)
     if run_1st:
         for i in range(1, len(X_eb)):  # 从1开始
             last_q_star = q_star
@@ -99,6 +100,7 @@ while True:
             # time.sleep(dt)
             if i == len(X_eb) - 1:
                 run_1st = False
+                print(Q)
                 break
     else:
         robot.FK(robot.init_joint_angles)

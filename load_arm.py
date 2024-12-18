@@ -22,7 +22,7 @@ p.setGravity(0, 0, 0)
 # planeId = p.loadURDF("plane.urdf")
 
 # 加载机器人，并设置加载的机器人的位姿
-arm = "arm_fyl"
+arm = "arm_robot"
 tool = "pry2"
 # planeId = p.loadURDF("plane.urdf")
 robot = ROBOT(arm, tool)
@@ -40,23 +40,23 @@ p.resetDebugVisualizerCamera(cameraDistance=1, cameraYaw=-135,
                                  cameraPitch=-36, cameraTargetPosition=[0.2,0,0.5])
 
 q = 0
-joint_idx = 5
-test_q = pi/ 2
+joint_idx = 3
+test_q = pi/ 6
 while True:
     p.stepSimulation()
     q += 0.005
     # joint test:
-    # p.resetJointState(bodyUniqueId=robot.robot_id,
-    #                   jointIndex=joint_idx,
-    #                   targetValue=test_q,
-    #                   targetVelocity=0)
+    p.resetJointState(bodyUniqueId=robot.robot_id,
+                      jointIndex=joint_idx,
+                      targetValue=test_q,
+                      targetVelocity=0)
 
     # keypoint tracking:
-    p.resetBasePositionAndOrientation(robot.robot_id, [-q/5, -q/5, 1], [0, 0, 0, 1])
-    kpt_ee.draw_traj()
-    kpt_wrist.draw_traj()
-    kpt_elbow.draw_traj()
-    kpt_shoulder.draw_traj()
+    # p.resetBasePositionAndOrientation(robot.robot_id, [-q/5, -q/5, 1], [0, 0, 0, 1])
+    # kpt_ee.draw_traj()
+    # kpt_wrist.draw_traj()
+    # kpt_elbow.draw_traj()
+    # kpt_shoulder.draw_traj()
     time.sleep(1./240.)
     eb_position = p.getLinkState(robot.robot_id, robot.elbow_index)[2]
     # print(eb_position)

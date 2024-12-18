@@ -171,7 +171,7 @@ class ROBOT:
         Q_star = np.array(Q_star.x).reshape([sample_len,self.dof])
         return Q_star, Error
     
-    def step_kpt_opt(self, x_eb, x_wr, x_ee, q_ee, q_init):
+    def step_kpt_opt(self, x_eb, x_wr, x_ee, q_ee, q_init, cons_opt=False):
         """
         差分位置优化控制
         """
@@ -198,7 +198,10 @@ class ROBOT:
             # Error = np.sum(np.array(Error))
             Error = np.dot(np.array(Error).T, np.array(Error)) + 0.001 *np.dot(q.T, q)  # QP问题
             return Error
-        q_star = minimize(eqn, q_init, method='BFGS')
+        if cons_opt:
+            q_star = minimize(eqn, q_init, method='COBYLA', bounds=self.bound)
+        else:
+            q_star = minimize(eqn, q_init, method='BFGS')
         Error = q_star.fun
         q_star = np.array(q_star.x)
         return q_star

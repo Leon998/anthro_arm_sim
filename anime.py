@@ -34,10 +34,12 @@ else:
     files = get_all_file_paths(data_path + subject + '/')
 
 print(len(files))
-file_index = 3
+file_index = 0
 file_name = files[file_index]
 print(file_name)
 frame = [0, -1]
+cons_opt = True
+point_size = 8
 
 _, ts_base2eb, _, ts_base2wr, qs_base2ee, ts_base2ee, _, ts_base2tg = get_transformed_trajectory(file_name, 
                                                                                   base_bias,
@@ -46,12 +48,12 @@ _, ts_base2eb, _, ts_base2wr, qs_base2ee, ts_base2ee, _, ts_base2tg = get_transf
 
 num_points = len(ts_base2ee)
 print(ts_base2ee.shape)
-p.addUserDebugPoints(ts_base2ee, [([1, 0, 0]) for i in range(num_points)], 5)
-p.addUserDebugPoints(ts_base2wr, [([0, 1, 0]) for i in range(num_points)], 5)
-p.addUserDebugPoints(ts_base2eb, [([0, 0, 1]) for i in range(num_points)], 5)
-p.addUserDebugPoints(ts_base2tg, [([0, 0, 0]) for i in range(num_points)], 5)
+# p.addUserDebugPoints(ts_base2ee, [([1, 0, 0]) for i in range(num_points)], point_size)
+# p.addUserDebugPoints(ts_base2wr, [([0, 1, 0]) for i in range(num_points)], point_size)
+# p.addUserDebugPoints(ts_base2eb, [([0, 0, 1]) for i in range(num_points)], point_size)
+# p.addUserDebugPoints(ts_base2tg, [([0, 0, 0]) for i in range(num_points)], point_size)
 # 目标位置球体
-rgba_color = [1, 0, 0, 0.5]
+rgba_color = [0.75, 0, 0.75, 0.5]
 radius = 0.03
 
 visual_shape = p.createVisualShape(p.GEOM_SPHERE, radius=radius, rgbaColor=rgba_color)
@@ -77,14 +79,14 @@ Q = []
 while True:
     p.stepSimulation()
     while INIT_FLAG:
-        q_star = robot.step_kpt_opt(x_eb, x_wr, x_ee, q_ee, q_init=[0. for i in range(robot.dof)])
+        q_star = robot.step_kpt_opt(x_eb, x_wr, x_ee, q_ee, q_init=[0. for i in range(robot.dof)], cons_opt=cons_opt)
         robot.FK(q_star)
         Q.append(q_star)
         INIT_FLAG = False
     if run_1st:
         for i in range(1, len(X_eb)):  # 从1开始
             last_q_star = q_star
-            q_star = robot.step_kpt_opt(X_eb[i], X_wr[i], X_ee[i], Q_ee[i], q_init=last_q_star)
+            q_star = robot.step_kpt_opt(X_eb[i], X_wr[i], X_ee[i], Q_ee[i], q_init=last_q_star, cons_opt=cons_opt)
             robot.FK(q_star)
             Q.append(q_star)
             # time.sleep(dt)
@@ -95,5 +97,9 @@ while True:
         robot.FK(robot.init_joint_angles)
         time.sleep(1)
         for i in range(0, len(X_eb)):  # 从0开始
+            if i > 2:
+                p.addUserDebugPoints([p.getLinkState(robot.robot_id, robot.ee_index)[0]], [[1, 0, 0]], point_size)
+                p.addUserDebugPoints([p.getLinkState(robot.robot_id, robot.wrist_index)[0]], [[0, 1, 0]], point_size)
+                p.addUserDebugPoints([p.getLinkState(robot.robot_id, robot.elbow_index)[0]], [[0, 0, 1]], point_size)
             robot.FK(Q[i])
             time.sleep(dt)
